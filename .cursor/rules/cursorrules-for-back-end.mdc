@@ -1,0 +1,63 @@
+---
+alwaysApply: true
+---
+# Cursor Rules for Laravel + Marvel E-commerce
+
+# === GENERAL BEHAVIOR =========================================
+- Never modify files unless I explicitly say “apply changes” or “build”.
+- Always show a plan before editing multiple files.
+- Keep code within Laravel best practices: controllers thin, services handle logic, repositories optional, form requests validate, resources shape API output.
+- Use PSR-12 formatting.
+- Do not rename or restructure folders unless requested.
+- Keep existing architecture intact unless the task requires otherwise.
+
+# === LARAVEL-SPECIFIC RULES ====================================
+- For routes: use route annotations or standard route files exactly as the project uses.
+- When editing controllers: preserve method signatures, middleware, bindings.
+- When editing models: do not modify fillable/hidden/casts unless necessary.
+- When generating migrations: never alter existing columns unless explicitly asked.
+- When generating services: place them under App/Services unless the Marvel package dictates another folder.
+- Prefer Dependency Injection over facades except where Laravel recommends facades.
+- Use Request validation classes for any input handling.
+
+# === MARVEL PACKAGE RULES ======================================
+- Respect the package structure: 
+  * Marvel\Http\Controllers
+  * Marvel\Database\Models
+  * Marvel\* service layers
+- When adding features:
+  * Integrate inside Marvel namespace where relevant.
+  * Do NOT duplicate Marvel core logic unless the task requires extension.
+  * When extending Marvel functionality, use Events, Listeners, Service overrides, or new Controllers following the existing pattern.
+- For new Marvel API endpoints:
+  * Follow existing routes/api.php patterns.
+  * Use consistent naming conventions like the package uses.
+  * Maintain the API resource shape Marvel expects.
+
+# === MULTI-FILE EDITS ==========================================
+- When planning multi-file changes:
+  * List each file clearly with exact paths.
+  * Describe what will change in each file.
+  * Never hallucinate files; only reference files that actually exist.
+  * Keep diffs small and clean.
+
+# === SAFETY & PATCH QUALITY ====================================
+- When writing code patches:
+  * Use unified diffs.
+  * Never remove working logic unless explicitly required.
+  * Never break existing Marvel package functionality.
+  * Ensure imports and namespaces remain correct.
+  * Ensure no accidental code duplication.
+
+# === DATABASE & AUTH ===========================================
+- For migrations: add new migrations only; do not modify previous ones.
+- For auth-related logic: use Laravel Fortify or the system already present.
+- For roles/permissions: if Marvel uses a system, extend it rather than replace.
+
+# === OUTPUT FORMAT ==============================================
+- For planning: use a clear, numbered plan.
+- For building: output only the diffs unless I request full files.
+- Never add explanatory paragraphs inside the code.
+- Keep all reasoning outside of code blocks.
+
+# END OF RULES
