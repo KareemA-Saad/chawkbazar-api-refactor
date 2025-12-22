@@ -52,6 +52,7 @@ use Marvel\Http\Controllers\RefundPolicyController;
 use Marvel\Http\Controllers\RefundReasonController;
 use Marvel\Http\Controllers\StoreNoticeController;
 use Marvel\Http\Controllers\TermsAndConditionsController;
+use Marvel\Http\Controllers\ComponentDataController;
 
 // use Illuminate\Support\Facades\Auth;
 
@@ -194,6 +195,16 @@ Route::apiResource('terms-and-conditions', TermsAndConditionsController::class, 
 Route::get('cms-pages', [CmsPageController::class, 'index']);
 Route::get('cms-pages/{slug}', [CmsPageController::class, 'show']);
 
+// Puck page builder endpoints
+Route::get('puck/page', [CmsPageController::class, 'showByPath']);
+
+// Component data endpoints for Puck page builder
+Route::get('component-data/flash-sale-products', [ComponentDataController::class, 'flashSaleProducts']);
+Route::get('component-data/categories', [ComponentDataController::class, 'categories']);
+Route::get('component-data/collections', [ComponentDataController::class, 'collections']);
+Route::get('component-data/popular-products', [ComponentDataController::class, 'popularProducts']);
+Route::get('component-data/best-selling-products', [ComponentDataController::class, 'bestSellingProducts']);
+
 Route::apiResource('flash-sale', FlashSaleController::class, [
     'only' => ['index', 'show'],
 ]);
@@ -217,6 +228,9 @@ Route::group(
         Route::post('cms-pages', [CmsPageController::class, 'store']);
         Route::put('cms-pages/{id}', [CmsPageController::class, 'update']);
         Route::delete('cms-pages/{id}', [CmsPageController::class, 'destroy']);
+
+        // Puck page builder save endpoint (with upsert)
+        Route::post('puck/page', [CmsPageController::class, 'storePuckPage']);
     }
 );
 
@@ -398,14 +412,14 @@ Route::group(
         // Route::apiResource('notify-logs', NotifyLogsController::class, [
         //     'only' => ['index'],
         // ]);
-
+    
         // Route::post('notify-log-seen', [NotifyLogsController::class, 'readNotifyLogs']);
         // Route::post('notify-log-read-all', [NotifyLogsController::class, 'readAllNotifyLogs']);
-
+    
         // Route::apiResource('faqs', FaqsController::class, [
         //     'only' => ['store', 'update', 'destroy'],
         // ]);
-
+    
         Route::apiResource('flash-sale', FlashSaleController::class, [
             'only' => ['store', 'update', 'destroy'],
         ]);
@@ -425,7 +439,7 @@ Route::group(
         ]);
         Route::get('/vendors/list', [UserController::class, 'vendors']);
         // Route::post('products-request-for-flash-sale', [FlashSaleVendorRequestController::class, 'productsRequestForFlashSale']);
-
+    
         Route::apiResource('ownership-transfer', OwnershipTransferController::class, [
             'only' => ['index', 'show'],
         ]);

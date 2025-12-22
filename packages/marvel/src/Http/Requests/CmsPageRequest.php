@@ -17,22 +17,47 @@ class CmsPageRequest extends FormRequest
     }
 
     /**
-    * @return array<string, mixed>
-    */
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
+        $id = $this->route('id') ?? $this->route('cms_page');
+
         return [
-            'slug' => [
+            // Path field - required for Puck routing (e.g., "/", "/about")
+            'path' => [
                 'required',
                 'string',
                 'max:191',
-                Rule::unique('cms_pages', 'slug')->ignore($this->route('id') ?? $this->route('cms_page')),
+                Rule::unique('cms_pages', 'path')->ignore($id),
             ],
+
+            // Slug - now optional (for backward compatibility)
+            'slug' => [
+                'nullable',
+                'string',
+                'max:191',
+                Rule::unique('cms_pages', 'slug')->ignore($id),
+            ],
+
             'title' => ['required', 'string', 'max:191'],
+
+            // Legacy content format (array of components)
             'content' => ['nullable', 'array'],
-            'content.*.type' => ['required_with:content', 'string'],
-            'content.*.order' => ['required_with:content', 'integer'],
+            'content.*.type' => ['sometimes', 'string'],
             'content.*.props' => ['nullable', 'array'],
+            // Note: 'order' removed - Puck uses array position for ordering
+
+            // Puck data format (root, content, zones)
+            'data' => ['nullable', 'array'],
+            'data.root' => ['nullable', 'array'],
+            'data.root.props' => ['nullable', 'array'],
+            'data.content' => ['nullable', 'array'],
+            'data.content.*.type' => ['sometimes', 'string'],
+            'data.content.*.props' => ['nullable', 'array'],
+            'data.zones' => ['nullable', 'array'],
+
+            // Meta information
             'meta' => ['nullable', 'array'],
         ];
     }
@@ -42,4 +67,5 @@ class CmsPageRequest extends FormRequest
         throw new HttpResponseException(response()->json($validator->errors(), 422));
     }
 }
+
 
