@@ -10,7 +10,6 @@ use Marvel\Payments\PaymentInterface;
 use Marvel\Payments\Base;
 use Marvel\Traits\PaymentTrait;
 use Mollie\Laravel\Facades\Mollie as MollieFacade;
-use Razorpay\Api\Errors\SignatureVerificationError;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class Mollie extends Base implements PaymentInterface
@@ -37,8 +36,8 @@ class Mollie extends Base implements PaymentInterface
       extract($data);
       $order = MollieFacade::api()->payments->create([
         "amount" => [
-          "currency"  => $this->currency,
-          "value"     => number_format($amount, 2)
+          "currency" => $this->currency,
+          "value" => number_format($amount, 2)
         ],
         "description" => "Order From " . $order_tracking_number,
         "redirectUrl" => config("shop.shop_url") . "/orders/{$order_tracking_number}/thank-you",
@@ -48,11 +47,11 @@ class Mollie extends Base implements PaymentInterface
         ],
       ]);
       return [
-        'payment_id'   => $order->id,
-        'amount'       => $order->amount->value,
-        'invoice_id'   => $order_tracking_number,
+        'payment_id' => $order->id,
+        'amount' => $order->amount->value,
+        'invoice_id' => $order_tracking_number,
         'redirect_url' => $order->getCheckoutUrl(),
-        'is_redirect'  => true,
+        'is_redirect' => true,
       ];
     } catch (Exception $e) {
       throw new HttpException(400, SOMETHING_WENT_WRONG_WITH_PAYMENT);
@@ -131,13 +130,18 @@ class Mollie extends Base implements PaymentInterface
   /**
    * handleWebHooks
    *
+   * Mollie webhooks are secure by design - they only send the payment ID.
+   * We verify by calling Mollie's API to get the actual payment status,
+   * which cannot be spoofed as it requires our API key.
+   *
    * @param  mixed  $request
    * @return void
-   * @throws Throwable
    */
   public function handleWebHooks($request): void
   {
     try {
+      // Mollie only sends the payment ID - we fetch the actual status from their API
+      // This is Mollie's recommended security model
       $payment = MollieFacade::api()->payments()->get($request->id);
 
       if ($payment->isPaid() && !$payment->hasRefunds() && !$payment->hasChargebacks()) {
@@ -148,15 +152,16 @@ class Mollie extends Base implements PaymentInterface
         $this->updatePaymentOrderStatus($request, OrderStatus::PENDING, PaymentStatus::AWAITING_FOR_APPROVAL);
       } elseif ($payment->isCanceled()) {
         $this->updatePaymentOrderStatus($request, OrderStatus::PENDING, PaymentStatus::PENDING);
-      } elseif ($payment->isFailed() || $payment->isExpired() || $payment->hasRefunds() || $payment->hasRefunds() || $payment->hasChargebacks()) {
+      } elseif ($payment->isFailed() || $payment->isExpired() || $payment->hasRefunds() || $payment->hasChargebacks()) {
         $this->updatePaymentOrderStatus($request, OrderStatus::FAILED, PaymentStatus::FAILED);
       }
 
       // To prevent loop for any case
       http_response_code(200);
       exit();
-    } catch (SignatureVerificationError $e) {
-      // Invalid signature
+    } catch (\Exception $e) {
+      // Log error and return 400 to indicate webhook failed
+      \Log::error('Mollie webhook error: ' . $e->getMessage());
       http_response_code(400);
       exit();
     }

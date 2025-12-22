@@ -16,24 +16,65 @@ use OpenApi\Annotations as OA;
 /**
  * @OA\Info(
  *     version="1.0.0",
- *     title="Puck Page Builder API",
- *     description="API endpoints for the Puck-based page builder integration",
- *     @OA\Contact(name="API Support")
+ *     title="ChawkBazar API",
+ *     description="ChawkBazar E-commerce Platform REST API Documentation",
+ *     @OA\Contact(
+ *         email="support@chawkbazar.com",
+ *         name="API Support"
+ *     ),
+ *     @OA\License(
+ *         name="MIT",
+ *         url="https://opensource.org/licenses/MIT"
+ *     )
  * )
- * 
- * @OA\Server(url=L5_SWAGGER_CONST_HOST, description="API Base URL")
- * 
+ *
+ * @OA\Server(url=L5_SWAGGER_CONST_HOST, description="API Server")
+ *
  * @OA\SecurityScheme(
  *     securityScheme="sanctum",
  *     type="http",
  *     scheme="bearer",
- *     bearerFormat="JWT",
- *     description="Laravel Sanctum authentication"
+ *     bearerFormat="sanctum",
+ *     description="Enter your Bearer token obtained from /token endpoint"
  * )
- * 
- * @OA\Tag(
- *     name="Puck Pages",
- *     description="Page builder endpoints for Puck integration"
+ *
+ * @OA\Tag(name="Authentication", description="User authentication and registration endpoints")
+ * @OA\Tag(name="Password Management", description="Password reset and recovery endpoints")
+ * @OA\Tag(name="OTP Authentication", description="One-Time Password based authentication")
+ * @OA\Tag(name="Puck Pages", description="Page builder endpoints for Puck integration")
+ *
+ * @OA\Schema(
+ *     schema="AuthResponse",
+ *     type="object",
+ *     @OA\Property(property="token", type="string", example="1|abc123xyz...", description="Bearer token for API authentication"),
+ *     @OA\Property(property="permissions", type="array", @OA\Items(type="string"), example={"customer"}),
+ *     @OA\Property(property="role", type="string", example="customer")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="LoginResponse",
+ *     type="object",
+ *     @OA\Property(property="token", type="string", nullable=true, example="1|abc123xyz...", description="Bearer token or null if login failed"),
+ *     @OA\Property(property="permissions", type="array", @OA\Items(type="string"), example={"customer"}),
+ *     @OA\Property(property="email_verified", type="boolean", example=true),
+ *     @OA\Property(property="role", type="string", example="customer")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="MessageResponse",
+ *     type="object",
+ *     @OA\Property(property="message", type="string", example="Operation completed successfully"),
+ *     @OA\Property(property="success", type="boolean", example=true)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="ValidationError",
+ *     type="object",
+ *     @OA\Property(
+ *         property="errors",
+ *         type="object",
+ *         example={"email": {"The email field is required."}, "password": {"The password field is required."}}
+ *     )
  * )
  */
 class CmsPageController extends CoreController
