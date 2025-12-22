@@ -5,7 +5,6 @@ namespace Marvel\Http\Controllers;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -138,7 +137,7 @@ class UserController extends CoreController
             return $this->repository->permission(Permission::STORE_OWNER)
                 ->where('is_active', $is_active)
                 ->whereNotIn('id', $admins)
-                ->when($exclude, fn ($query) => $query->where('id', '!=', $exclude));
+                ->when($exclude, fn($query) => $query->where('id', '!=', $exclude));
         }
         return $this->repository->permission(null);
     }
@@ -249,10 +248,37 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/token",
+     *     operationId="login",
+     *     tags={"Authentication"},
+     *     summary="User Login",
+     *     description="Authenticate user and get access token",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "password"},
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful login",
+     *         @OA\JsonContent(ref="#/components/schemas/LoginResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationError")
+     *     )
+     * )
+     */
     public function token(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
@@ -271,6 +297,27 @@ class UserController extends CoreController
         ];
     }
 
+    /**
+     * @OA\Post(
+     *     path="/logout",
+     *     operationId="logout",
+     *     tags={"Authentication"},
+     *     summary="User Logout",
+     *     description="Revoke the current access token",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successfully logged out",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function logout(Request $request)
     {
         $user = $request->user();
@@ -280,6 +327,39 @@ class UserController extends CoreController
         return $request->user()->currentAccessToken()->delete();
     }
 
+    /**
+     * @OA\Post(
+     *     path="/register",
+     *     operationId="register",
+     *     tags={"Authentication"},
+     *     summary="Register New User",
+     *     description="Create a new user account and get access token",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "email", "password"},
+     *             @OA\Property(property="name", type="string", maxLength=255, example="John Doe"),
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="securePassword123"),
+     *             @OA\Property(property="permission", type="string", enum={"customer", "store_owner"}, example="customer", description="User permission level")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successfully registered",
+     *         @OA\JsonContent(ref="#/components/schemas/AuthResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error",
+     *         @OA\JsonContent(ref="#/components/schemas/ValidationError")
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Not authorized (attempted to register as super_admin)"
+     *     )
+     * )
+     */
     public function register(UserCreateRequest $request)
     {
         $notAllowedPermissions = [Permission::SUPER_ADMIN];
@@ -294,20 +374,15 @@ class UserController extends CoreController
         }
         // Mark user as verified by default on registration
         $user = $this->repository->create([
-            'name'              => $request->name,
-            'email'             => $request->email,
-            'password'          => Hash::make($request->password),
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
             'email_verified_at' => now(),
         ]);
 
         $user->givePermissionTo($permissions);
         $user->assignRole($role);
         $this->giveSignupPointsToCustomer($user->id);
-        $setting = Settings::first();
-        $useMustVerifyEmail = isset($setting->options['useMustVerifyEmail']) ? $setting->options['useMustVerifyEmail'] : false;
-        if ($useMustVerifyEmail) {
-            event(new Registered($user));
-        }
         event(new ProcessUserData());
         return [
             "token" => $user->createToken('auth_token')->plainTextToken,
@@ -321,7 +396,7 @@ class UserController extends CoreController
         try {
             $user = $request->user();
             if ($user && $user->hasPermissionTo(Permission::SUPER_ADMIN) && $user->id != $request->id) {
-                $banUser =  User::find($request->id);
+                $banUser = User::find($request->id);
                 $banUser->is_active = false;
                 $banUser->save();
                 $this->inactiveUserShops($banUser->id);
@@ -347,7 +422,7 @@ class UserController extends CoreController
         try {
             $user = $request->user();
             if ($user && $user->hasPermissionTo(Permission::SUPER_ADMIN) && $user->id != $request->id) {
-                $activeUser =  User::find($request->id);
+                $activeUser = User::find($request->id);
                 $activeUser->is_active = true;
                 $activeUser->save();
                 return $activeUser;
@@ -358,6 +433,27 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/forget-password",
+     *     operationId="forgetPassword",
+     *     tags={"Password Management"},
+     *     summary="Request Password Reset",
+     *     description="Send password reset email to user",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset email sent",
+     *         @OA\JsonContent(ref="#/components/schemas/MessageResponse")
+     *     )
+     * )
+     */
     public function forgetPassword(Request $request)
     {
         $user = $this->repository->findByField('email', $request->email);
@@ -382,6 +478,28 @@ class UserController extends CoreController
             return ['message' => SOMETHING_WENT_WRONG, 'success' => false];
         }
     }
+    /**
+     * @OA\Post(
+     *     path="/verify-forget-password-token",
+     *     operationId="verifyForgetPasswordToken",
+     *     tags={"Password Management"},
+     *     summary="Verify Password Reset Token",
+     *     description="Verify that a password reset token is valid",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "token"},
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *             @OA\Property(property="token", type="string", example="abc123xyz")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token verification result",
+     *         @OA\JsonContent(ref="#/components/schemas/MessageResponse")
+     *     )
+     * )
+     */
     public function verifyForgetPasswordToken(Request $request)
     {
         $tokenData = DB::table('password_resets')->where('token', $request->token)->first();
@@ -394,6 +512,33 @@ class UserController extends CoreController
         }
         return ['message' => TOKEN_IS_VALID, 'success' => true];
     }
+    /**
+     * @OA\Post(
+     *     path="/reset-password",
+     *     operationId="resetPassword",
+     *     tags={"Password Management"},
+     *     summary="Reset Password",
+     *     description="Reset user password using token from email",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email", "token", "password"},
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *             @OA\Property(property="token", type="string", example="abc123xyz"),
+     *             @OA\Property(property="password", type="string", format="password", example="newSecurePassword123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successful",
+     *         @OA\JsonContent(ref="#/components/schemas/MessageResponse")
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
     public function resetPassword(Request $request)
     {
         try {
@@ -480,7 +625,7 @@ class UserController extends CoreController
 
         try {
             $user = Socialite::driver($provider)->userFromToken($token);
-            $userExist = User::where('email',  $user->email)->exists();
+            $userExist = User::where('email', $user->email)->exists();
 
             $userCreated = User::firstOrCreate(
                 [
@@ -616,13 +761,13 @@ class UserController extends CoreController
                     $name = $request->name;
                     $email = $request->email;
                     if ($name && $email) {
-                        $userExist = User::where('email',  $email)->exists();
+                        $userExist = User::where('email', $email)->exists();
                         $user = User::firstOrCreate(
                             [
                                 'email' => $email,
                             ],
                             [
-                                'name'              => $name,
+                                'name' => $name,
                                 // Mark phone-based signups as verified by default
                                 'email_verified_at' => now(),
                             ]
@@ -796,7 +941,7 @@ class UserController extends CoreController
                 break;
             case Permission::STORE_OWNER:
                 $excludeUsers = User::permission(Permission::SUPER_ADMIN)->pluck('id')->toArray();
-                if(isset($request->exclude)){
+                if (isset($request->exclude)) {
                     $excludeUsers = [...$excludeUsers, $request->exclude];
                 }
                 $query->permission($permission)->whereNotIn('id', $excludeUsers);

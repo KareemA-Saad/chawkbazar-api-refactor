@@ -39,7 +39,7 @@ class Paymongo extends Base implements PaymentInterface
             $redirectUrl = config('shop.shop_url');
 
             $order = PaymongoFacade::source()->create([
-                'type' =>  $selected_payment_path,
+                'type' => $selected_payment_path,
                 'amount' => round($amount),
                 'currency' => $this->currency,
                 "metadata" => [
@@ -52,11 +52,11 @@ class Paymongo extends Base implements PaymentInterface
             ]);
 
             return [
-                'payment_id'   => $order->id,
-                'amount'       => $order->amount,
-                'invoice_id'   => $order_tracking_number,
+                'payment_id' => $order->id,
+                'amount' => $order->amount,
+                'invoice_id' => $order_tracking_number,
                 'redirect_url' => $order->redirect['checkout_url'],
-                'is_redirect'  => true,
+                'is_redirect' => true,
             ];
         } catch (Exception $e) {
             throw new MarvelException(SOMETHING_WENT_WRONG_WITH_PAYMENT);
@@ -102,17 +102,50 @@ class Paymongo extends Base implements PaymentInterface
      */
     public function handleWebHooks($request): void
     {
-        try {
-            $payload = @file_get_contents('php://input');
-            $signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'];
-            $webhookSecretKey = config('shop.paymongo.webhook_sig');
-        } catch (SignatureVerificationException $e) {
-            // Invalid signature
+        // Get the raw payload and signature
+        $payload = @file_get_contents('php://input');
+        $signatureHeader = $_SERVER['HTTP_PAYMONGO_SIGNATURE'] ?? null;
+        $webhookSecretKey = config('shop.paymongo.webhook_sig');
+
+        // Verify webhook signature
+        if (!$signatureHeader || !$webhookSecretKey) {
+            \Log::warning('Paymongo webhook: Missing signature or secret key');
             http_response_code(400);
             exit();
         }
 
-        $eventStatus = $request['data']['attributes']['data']['attributes']['status'];
+        // Paymongo signature format: t=timestamp,te=test_signature,li=live_signature
+        // Parse the signature header
+        $signatureParts = [];
+        foreach (explode(',', $signatureHeader) as $part) {
+            $keyValue = explode('=', $part, 2);
+            if (count($keyValue) === 2) {
+                $signatureParts[$keyValue[0]] = $keyValue[1];
+            }
+        }
+
+        $timestamp = $signatureParts['t'] ?? null;
+        // Use 'li' for live mode, 'te' for test mode
+        $signature = $signatureParts['li'] ?? $signatureParts['te'] ?? null;
+
+        if (!$timestamp || !$signature) {
+            \Log::warning('Paymongo webhook: Invalid signature format');
+            http_response_code(400);
+            exit();
+        }
+
+        // Compute expected signature
+        $signedPayload = $timestamp . '.' . $payload;
+        $expectedSignature = hash_hmac('sha256', $signedPayload, $webhookSecretKey);
+
+        // Compare signatures
+        if (!hash_equals($expectedSignature, $signature)) {
+            \Log::warning('Paymongo webhook: Signature verification failed');
+            http_response_code(400);
+            exit();
+        }
+
+        $eventStatus = $request['data']['attributes']['data']['attributes']['status'] ?? null;
         switch ($eventStatus) {
             case 'chargeable':
                 $this->updatePaymentOrderStatus($request, OrderStatus::PROCESSING, PaymentStatus::SUCCESS);
@@ -120,7 +153,7 @@ class Paymongo extends Base implements PaymentInterface
             case 'payment.paid':
                 $this->updatePaymentOrderStatus($request, OrderStatus::PROCESSING, PaymentStatus::SUCCESS);
                 break;
-            case 'payment.failed ':
+            case 'payment.failed':
                 $this->updatePaymentOrderStatus($request, OrderStatus::FAILED, PaymentStatus::FAILED);
                 break;
         }
