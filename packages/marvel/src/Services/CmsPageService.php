@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Marvel\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Marvel\Database\Models\CmsPage;
 use Marvel\Database\Repositories\CmsPageRepository;
 use Marvel\Exceptions\MarvelException;
@@ -32,11 +32,25 @@ class CmsPageService
     }
 
     /**
-     * Fetch a single page by slug.
+     * Fetch a single page by slug (legacy support).
      */
     public function getBySlug(string $slug): CmsPage
     {
         $page = $this->repository->findOneByField('slug', $slug);
+
+        if (!$page) {
+            throw new MarvelException(NOT_FOUND);
+        }
+
+        return $page;
+    }
+
+    /**
+     * Fetch a single page by path (Puck format).
+     */
+    public function getByPath(string $path): CmsPage
+    {
+        $page = $this->repository->findOneByField('path', $path);
 
         if (!$page) {
             throw new MarvelException(NOT_FOUND);
@@ -88,29 +102,49 @@ class CmsPageService
     }
 
     /**
-     * Normalize payload and sort content by order.
+     * Normalize payload to support both Puck and legacy formats.
      *
      * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function preparePayload(array $data, ?CmsPage $existing = null): array
     {
-        $content = $data['content'] ?? $existing?->content ?? [];
+        // Get path from request or existing
+        $path = $data['path'] ?? $existing?->path;
 
+        // Auto-generate slug from path if not provided
+        $slug = $data['slug'] ?? $existing?->slug;
+        if (!$slug && $path) {
+            $slug = Str::slug(trim($path, '/')) ?: 'home';
+        }
+
+        // Handle both Puck format (data.content) and legacy format (content)
+        $content = $data['content'] ?? null;
+        $puckData = $data['data'] ?? null;
+
+        // If Puck format is provided, extract content for legacy field
+        if ($puckData && isset($puckData['content'])) {
+            $content = $puckData['content'];
+        }
+
+        // Sort content by order if order field exists (legacy support)
         if (is_array($content)) {
             $content = $this->sortContent($content);
         }
 
-        $payload = [
-            'slug' => $data['slug'] ?? $existing?->slug,
+        return [
+            'path' => $path,
+            'slug' => $slug,
             'title' => $data['title'] ?? $existing?->title,
-            'content' => $content,
+            'content' => $content ?? $existing?->content,
+            'data' => $puckData ?? $existing?->data,
             'meta' => $data['meta'] ?? $existing?->meta,
         ];
-
-        return $payload;
     }
 
     /**
+     * Sort content by order field if present.
+     *
      * @param array<int, mixed> $content
      * @return array<int, mixed>
      */
@@ -122,4 +156,5 @@ class CmsPageService
             ->all();
     }
 }
+
 
