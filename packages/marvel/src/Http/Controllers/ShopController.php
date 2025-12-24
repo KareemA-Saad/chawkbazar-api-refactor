@@ -25,6 +25,56 @@ use Marvel\Enums\Role;
 use Marvel\Traits\OrderStatusManagerWithPaymentTrait;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Shops", description="Shop/store management - browse shops, follow shops, manage your own shop")
+ *
+ * @OA\Schema(
+ *     schema="ShopSummary",
+ *     type="object",
+ *     description="Shop summary for listings",
+ *     @OA\Property(property="id", type="integer", example=2),
+ *     @OA\Property(property="name", type="string", example="Urban Threads Emporium"),
+ *     @OA\Property(property="slug", type="string", example="urban-threads-emporium"),
+ *     @OA\Property(property="description", type="string", example="Premium fashion and accessories store"),
+ *     @OA\Property(property="is_active", type="boolean", example=true),
+ *     @OA\Property(property="orders_count", type="integer", example=150),
+ *     @OA\Property(property="products_count", type="integer", example=45),
+ *     @OA\Property(property="logo", type="object", @OA\Property(property="id", type="integer"), @OA\Property(property="original", type="string"), @OA\Property(property="thumbnail", type="string")),
+ *     @OA\Property(property="cover_image", type="object", nullable=true)
+ * )
+ *
+ * @OA\Schema(
+ *     schema="Shop",
+ *     type="object",
+ *     description="Full shop details",
+ *     @OA\Property(property="id", type="integer", example=2),
+ *     @OA\Property(property="name", type="string", example="Urban Threads Emporium"),
+ *     @OA\Property(property="slug", type="string", example="urban-threads-emporium"),
+ *     @OA\Property(property="description", type="string", example="Premium fashion and accessories store"),
+ *     @OA\Property(property="is_active", type="boolean", example=true),
+ *     @OA\Property(property="orders_count", type="integer", example=150),
+ *     @OA\Property(property="products_count", type="integer", example=45),
+ *     @OA\Property(property="owner_id", type="integer", example=1),
+ *     @OA\Property(property="logo", type="object", nullable=true),
+ *     @OA\Property(property="cover_image", type="object", nullable=true),
+ *     @OA\Property(property="address", type="object", @OA\Property(property="street_address", type="string"), @OA\Property(property="city", type="string"), @OA\Property(property="state", type="string"), @OA\Property(property="zip", type="string"), @OA\Property(property="country", type="string")),
+ *     @OA\Property(property="settings", type="object", @OA\Property(property="contact", type="string"), @OA\Property(property="website", type="string"), @OA\Property(property="location", type="object", @OA\Property(property="lat", type="number"), @OA\Property(property="lng", type="number"))),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="owner", type="object", @OA\Property(property="id", type="integer"), @OA\Property(property="name", type="string"), @OA\Property(property="email", type="string")),
+ *     @OA\Property(property="balance", type="object", nullable=true, @OA\Property(property="current_balance", type="number"), @OA\Property(property="total_earnings", type="number"), @OA\Property(property="withdrawn_amount", type="number")),
+ *     @OA\Property(property="categories", type="array", @OA\Items(ref="#/components/schemas/CategorySummary"))
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PaginatedShops",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/ShopSummary")),
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="per_page", type="integer", example=15),
+ *     @OA\Property(property="total", type="integer", example=11)
+ * )
+ */
 class ShopController extends CoreController
 {
     use OrderStatusManagerWithPaymentTrait;
@@ -36,10 +86,16 @@ class ShopController extends CoreController
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Shop[]
+     * @OA\Get(
+     *     path="/shops",
+     *     operationId="listShops",
+     *     tags={"Shops"},
+     *     summary="List all shops",
+     *     description="Retrieve a paginated list of active shops with order and product counts.",
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="page", in="query", description="Page number", @OA\Schema(type="integer", default=1)),
+     *     @OA\Response(response=200, description="Shops retrieved successfully", @OA\JsonContent(ref="#/components/schemas/PaginatedShops"))
+     * )
      */
     public function index(Request $request)
     {
@@ -53,10 +109,30 @@ class ShopController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param ShopCreateRequest $request
-     * @return mixed
+     * @OA\Post(
+     *     path="/shops",
+     *     operationId="createShop",
+     *     tags={"Shops"},
+     *     summary="Create a new shop",
+     *     description="Create a new shop. Requires STORE_OWNER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name"},
+     *             @OA\Property(property="name", type="string", example="My New Shop"),
+     *             @OA\Property(property="description", type="string", example="A great shop for fashion lovers"),
+     *             @OA\Property(property="logo", type="object"),
+     *             @OA\Property(property="cover_image", type="object"),
+     *             @OA\Property(property="address", type="object"),
+     *             @OA\Property(property="settings", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Shop created successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - needs STORE_OWNER permission"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(ShopCreateRequest $request)
     {
@@ -71,10 +147,16 @@ class ShopController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $slug
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/shops/{slug}",
+     *     operationId="getShop",
+     *     tags={"Shops"},
+     *     summary="Get a single shop",
+     *     description="Retrieve detailed shop information by slug or ID. Includes categories, owner, and balance (for shop owner/admin only).",
+     *     @OA\Parameter(name="slug", in="path", description="Shop slug or ID", required=true, @OA\Schema(type="string", example="urban-threads-emporium")),
+     *     @OA\Response(response=200, description="Shop retrieved successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=404, description="Shop not found")
+     * )
      */
     public function show($slug, Request $request)
     {
@@ -87,7 +169,7 @@ class ShopController extends CoreController
         try {
             return match (true) {
                 is_numeric($slug) => $shop->where('id', $slug)->firstOrFail(),
-                is_string($slug)  => $shop->where('slug', $slug)->firstOrFail(),
+                is_string($slug) => $shop->where('slug', $slug)->firstOrFail(),
             };
         } catch (MarvelException $e) {
             throw new MarvelException(NOT_FOUND);
@@ -95,11 +177,27 @@ class ShopController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param ShopUpdateRequest $request
-     * @param int $id
-     * @return array
+     * @OA\Put(
+     *     path="/shops/{id}",
+     *     operationId="updateShop",
+     *     tags={"Shops"},
+     *     summary="Update a shop",
+     *     description="Update shop details. Requires ownership or SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Shop ID", required=true, @OA\Schema(type="integer", example=2)),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *         @OA\Property(property="name", type="string"),
+     *         @OA\Property(property="description", type="string"),
+     *         @OA\Property(property="logo", type="object"),
+     *         @OA\Property(property="cover_image", type="object"),
+     *         @OA\Property(property="address", type="object"),
+     *         @OA\Property(property="settings", type="object")
+     *     )),
+     *     @OA\Response(response=200, description="Shop updated successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Shop not found")
+     * )
      */
     public function update(ShopUpdateRequest $request, $id)
     {
@@ -120,7 +218,8 @@ class ShopController extends CoreController
         throw new AuthorizationException(NOT_AUTHORIZED);
     }
 
-    public function shopMaintenanceEvent(Request $request) {
+    public function shopMaintenanceEvent(Request $request)
+    {
         try {
             $id = $request->shop_id;
             return $this->repository->maintenanceShopEvent($request, $id);
@@ -130,10 +229,19 @@ class ShopController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/shops/{id}",
+     *     operationId="deleteShop",
+     *     tags={"Shops"},
+     *     summary="Delete a shop",
+     *     description="Delete a shop. Requires ownership or SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Shop ID to delete", required=true, @OA\Schema(type="integer", example=2)),
+     *     @OA\Response(response=200, description="Shop deleted successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Shop not found")
+     * )
      */
     public function destroy(Request $request, $id)
     {
@@ -186,7 +294,7 @@ class ShopController extends CoreController
             if (!$request->isCustomCommission) {
                 $adminCommissionDefaultRate = $this->getCommissionRate($balance->total_earnings);
                 $balance->admin_commission_rate = $adminCommissionDefaultRate;
-            }else{
+            } else {
                 $balance->admin_commission_rate = $admin_commission_rate;
             }
             $balance->is_custom_commission = $request->isCustomCommission;
@@ -269,6 +377,22 @@ class ShopController extends CoreController
         throw new AuthorizationException(NOT_AUTHORIZED);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/my-shops",
+     *     operationId="getMyShops",
+     *     tags={"Shops"},
+     *     summary="Get current user's shops",
+     *     description="Retrieve all shops owned by the authenticated user.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="User's shops retrieved successfully",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ShopSummary"))
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function myShops(Request $request)
     {
         $user = $request->user();
@@ -277,11 +401,21 @@ class ShopController extends CoreController
 
 
     /**
-     * Popular products by followed shops
-     *
-     * @param Request $request
-     * @return array
-     * @throws MarvelException
+     * @OA\Get(
+     *     path="/followed-shops-popular-products",
+     *     operationId="getFollowedShopsPopularProducts",
+     *     tags={"Shops"},
+     *     summary="Get popular products from followed shops",
+     *     description="Retrieve popular products from shops the user follows, sorted by order count.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", @OA\Schema(type="integer", default=10)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Popular products retrieved successfully",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/ProductSummary"))
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function followedShopsPopularProducts(Request $request)
     {
@@ -304,10 +438,21 @@ class ShopController extends CoreController
     }
 
     /**
-     * Get all the followed shops of logged-in user
-     *
-     * @param Request $request
-     * @return mixed
+     * @OA\Get(
+     *     path="/followed-shops",
+     *     operationId="getFollowedShops",
+     *     tags={"Shops"},
+     *     summary="Get shops followed by current user",
+     *     description="Retrieve paginated list of shops that the authenticated user is following.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Followed shops retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/PaginatedShops")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function userFollowedShops(Request $request)
     {
@@ -319,11 +464,21 @@ class ShopController extends CoreController
     }
 
     /**
-     * Get boolean response of a shop follow/unfollow status
-     *
-     * @param Request $request
-     * @return bool
-     * @throws MarvelException
+     * @OA\Get(
+     *     path="/follow-shop",
+     *     operationId="checkFollowShop",
+     *     tags={"Shops"},
+     *     summary="Check if user follows a shop",
+     *     description="Returns boolean indicating if authenticated user follows the specified shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="shop_id", in="query", required=true, @OA\Schema(type="integer", example=2)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Follow status retrieved",
+     *         @OA\JsonContent(type="boolean", example=true)
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function userFollowedShop(Request $request)
     {
@@ -336,7 +491,7 @@ class ShopController extends CoreController
             $userShops = User::where('id', $user->id)->with('follow_shops')->get();
             $followedShopIds = $userShops->first()->follow_shops->pluck('id')->all();
 
-            $shop_id = (int)$request->input('shop_id');
+            $shop_id = (int) $request->input('shop_id');
 
             return in_array($shop_id, $followedShopIds);
         } catch (MarvelException $e) {
@@ -345,11 +500,27 @@ class ShopController extends CoreController
     }
 
     /**
-     * Follow/Unfollow shop
-     *
-     * @param Request $request
-     * @return bool
-     * @throws MarvelException
+     * @OA\Post(
+     *     path="/follow-shop",
+     *     operationId="toggleFollowShop",
+     *     tags={"Shops"},
+     *     summary="Follow or unfollow a shop",
+     *     description="Toggle follow status for a shop. Returns true if now following, false if unfollowed.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"shop_id"},
+     *             @OA\Property(property="shop_id", type="integer", example=2)
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Follow status toggled",
+     *         @OA\JsonContent(type="boolean", example=true)
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function handleFollowShop(Request $request)
     {
@@ -362,7 +533,7 @@ class ShopController extends CoreController
             $userShops = User::where('id', $user->id)->with('follow_shops')->get();
             $followedShopIds = $userShops->first()->follow_shops->pluck('id')->all();
 
-            $shop_id = (int)$request->input('shop_id');
+            $shop_id = (int) $request->input('shop_id');
 
             if (in_array($shop_id, $followedShopIds)) {
                 $followedShopIds = array_diff($followedShopIds, [$shop_id]);
@@ -384,6 +555,26 @@ class ShopController extends CoreController
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/near-by-shop/{lat}/{lng}",
+     *     operationId="getNearByShops",
+     *     tags={"Shops"},
+     *     summary="Find shops near a location",
+     *     description="Returns shops within the configured maximum distance from the given coordinates, sorted by distance.",
+     *     @OA\Parameter(name="lat", in="path", required=true, description="Latitude", @OA\Schema(type="number", format="float", example=40.7128)),
+     *     @OA\Parameter(name="lng", in="path", required=true, description="Longitude", @OA\Schema(type="number", format="float", example=-74.0060)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Nearby shops retrieved successfully",
+     *         @OA\JsonContent(type="array", @OA\Items(
+     *             allOf={@OA\Schema(ref="#/components/schemas/ShopSummary")},
+     *             @OA\Property(property="distance", type="number", format="float", description="Distance in km")
+     *         ))
+     *     ),
+     *     @OA\Response(response=400, description="Invalid coordinates")
+     * )
+     */
     public function nearByShop($lat, $lng, Request $request)
     {
         $request['lat'] = $lat;
@@ -447,7 +638,7 @@ class ShopController extends CoreController
     public function transferShopOwnership(TransferShopOwnerShipRequest $request)
     {
         try {
-            return DB::transaction(fn () => $this->repository->transferShopOwnership($request));
+            return DB::transaction(fn() => $this->repository->transferShopOwnership($request));
         } catch (MarvelException $th) {
             throw new MarvelException(SOMETHING_WENT_WRONG);
         }

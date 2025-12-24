@@ -130,10 +130,10 @@ class OrderRepository extends BaseRepository
                 $request['payment_status'] = PaymentStatus::CASH;
                 break;
 
-                // case PaymentGatewayType::FULL_WALLET_PAYMENT:
-                //     $request['order_status'] = OrderStatus::PROCESSING;
-                //     $request['payment_status'] = PaymentStatus::WALLET;
-                //     break;
+            // case PaymentGatewayType::FULL_WALLET_PAYMENT:
+            //     $request['order_status'] = OrderStatus::PROCESSING;
+            //     $request['payment_status'] = PaymentStatus::WALLET;
+            //     break;
 
             default:
                 $request['order_status'] = OrderStatus::PENDING;
@@ -143,7 +143,7 @@ class OrderRepository extends BaseRepository
 
         $useWalletPoints = isset($request->use_wallet_points) ? $request->use_wallet_points : false;
         if ($request->user() && $request->user()->hasPermissionTo(Permission::SUPER_ADMIN) && isset($request['customer_id'])) {
-            $request['customer_id'] =  $request['customer_id'];
+            $request['customer_id'] = $request['customer_id'];
         } else {
             $request['customer_id'] = $request->user()->id ?? null;
         }
@@ -164,10 +164,14 @@ class OrderRepository extends BaseRepository
         }
         $request['amount'] = $this->calculateSubtotal($request['products']);
 
+        // STOCK VALIDATION: Lock and validate stock BEFORE proceeding
+        // This prevents overselling via race conditions
+        $this->validateAndLockStock($request['products']);
+
         if (isset($request->coupon_id)) {
             try {
                 $coupon = Coupon::findOrFail($request['coupon_id']);
-                $request['discount'] = $this->calculateDiscount($coupon,  $request['amount']);
+                $request['discount'] = $this->calculateDiscount($coupon, $request['amount']);
             } catch (Exception $th) {
                 throw $th;
             }
@@ -179,7 +183,7 @@ class OrderRepository extends BaseRepository
             $request['delivery_fee'] = $request['delivery_fee'];
         }
 
-        $request['paid_total'] = $request['amount'] + $request['sales_tax'] + $request['delivery_fee'] -  $request['discount'];
+        $request['paid_total'] = $request['amount'] + $request['sales_tax'] + $request['delivery_fee'] - $request['discount'];
         $request['total'] = $request['paid_total'];
         if (($useWalletPoints || $request->isFullWalletPayment) && $user) {
             $wallet = $user->wallet;
@@ -193,6 +197,8 @@ class OrderRepository extends BaseRepository
                 $request['payment_gateway'] = PaymentGatewayType::FULL_WALLET_PAYMENT;
                 $request['payment_status'] = PaymentStatus::SUCCESS;
                 $order = $this->createOrder($request);
+                // Deduct stock after order creation
+                $this->deductStock($request['products']);
                 $this->storeOrderWalletPoint($request['paid_total'], $order->id);
                 $this->manageWalletAmount($request['paid_total'], $user->id);
                 return $order;
@@ -202,6 +208,9 @@ class OrderRepository extends BaseRepository
         }
 
         $order = $this->createOrder($request);
+
+        // Deduct stock after successful order creation
+        $this->deductStock($request['products']);
 
         if (($useWalletPoints || $request->isFullWalletPayment) && $user) {
             $this->storeOrderWalletPoint(round($request['paid_total'], 2) - $amount, $order->id);
@@ -213,9 +222,13 @@ class OrderRepository extends BaseRepository
             throw new MarvelBadRequestException('COULD_NOT_PROCESS_THE_ORDER_PLEASE_CONTACT_WITH_THE_ADMIN');
         }
         // Create Intent
-        if (!in_array($order->payment_gateway, [
-            PaymentGatewayType::CASH, PaymentGatewayType::CASH_ON_DELIVERY, PaymentGatewayType::FULL_WALLET_PAYMENT
-        ])) {
+        if (
+            !in_array($order->payment_gateway, [
+                PaymentGatewayType::CASH,
+                PaymentGatewayType::CASH_ON_DELIVERY,
+                PaymentGatewayType::FULL_WALLET_PAYMENT
+            ])
+        ) {
             $order['payment_intent'] = $this->processPaymentIntent($request, $settings);
         }
 
@@ -229,6 +242,100 @@ class OrderRepository extends BaseRepository
         event(new OrderProcessed($order));
 
         return $order;
+    }
+
+    /**
+     * Validate stock availability and lock products for update.
+     * This prevents race conditions where multiple orders could oversell.
+     *
+     * @param array $products
+     * @throws MarvelBadRequestException
+     */
+    protected function validateAndLockStock(array $products): void
+    {
+        // Get unique product IDs
+        $productIds = collect($products)->pluck('product_id')->unique()->toArray();
+
+        // Lock products for update to prevent race conditions
+        $dbProducts = Product::whereIn('id', $productIds)
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        foreach ($products as $item) {
+            $productId = $item['product_id'];
+            $orderQuantity = $item['order_quantity'] ?? 1;
+            $variationId = $item['variation_option_id'] ?? null;
+
+            $product = $dbProducts->get($productId);
+
+            if (!$product) {
+                throw new MarvelBadRequestException("Product not found: {$productId}");
+            }
+
+            // Check if product is a rental or digital product (no stock check needed)
+            if ($product->is_rental || $product->is_digital) {
+                continue;
+            }
+
+            // For variable products, check variation stock
+            if ($variationId) {
+                $variation = Variation::where('id', $variationId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$variation) {
+                    throw new MarvelBadRequestException("Product variation not found");
+                }
+
+                if ($variation->quantity < $orderQuantity) {
+                    throw new MarvelBadRequestException(
+                        "Insufficient stock for {$product->name} (variation). " .
+                        "Available: {$variation->quantity}, Requested: {$orderQuantity}"
+                    );
+                }
+            } else {
+                // Simple product - check main product stock
+                if ($product->quantity < $orderQuantity) {
+                    throw new MarvelBadRequestException(
+                        "Insufficient stock for {$product->name}. " .
+                        "Available: {$product->quantity}, Requested: {$orderQuantity}"
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Deduct stock for ordered products.
+     * Should be called within a transaction after order creation.
+     *
+     * @param array $products
+     */
+    protected function deductStock(array $products): void
+    {
+        foreach ($products as $item) {
+            $productId = $item['product_id'];
+            $orderQuantity = $item['order_quantity'] ?? 1;
+            $variationId = $item['variation_option_id'] ?? null;
+
+            $product = Product::find($productId);
+
+            // Skip stock deduction for rental or digital products
+            if (!$product || $product->is_rental || $product->is_digital) {
+                continue;
+            }
+
+            if ($variationId) {
+                // Deduct from variation
+                Variation::where('id', $variationId)
+                    ->decrement('quantity', $orderQuantity);
+            } else {
+                // Deduct from main product
+                Product::where('id', $productId)
+                    ->decrement('quantity', $orderQuantity);
+            }
+        }
     }
 
 
@@ -263,32 +370,45 @@ class OrderRepository extends BaseRepository
     public function storeOrderWalletPoint($amount, $order_id)
     {
         if ($amount > 0) {
-            OrderWalletPoint::create(['amount' =>  $amount, 'order_id' =>  $order_id]);
+            OrderWalletPoint::create(['amount' => $amount, 'order_id' => $order_id]);
         }
     }
 
 
     /**
      * manageWalletAmount
+     * Deducts wallet points for order payment with proper locking and validation.
      *
-     * @param  mixed $total
+     * @param  mixed $total - The currency amount to deduct
      * @param  mixed $customer_id
      * @return void
+     * @throws MarvelBadRequestException if insufficient wallet points
      */
     public function manageWalletAmount($total, $customer_id)
     {
         try {
-            $total = $this->currencyToWalletPoints($total);
-            $wallet = Wallet::where('customer_id', $customer_id)->first();
-            $available_points = $wallet->available_points - $total >= 0 ? $wallet->available_points - $total : 0;
-            if ($available_points === 0) {
-                $spend = $wallet->points_used + $wallet->available_points;
-            } else {
-                $spend = $wallet->points_used + $total;
+            $pointsToDeduct = $this->currencyToWalletPoints($total);
+
+            // Lock wallet for update to prevent race conditions
+            $wallet = Wallet::where('customer_id', $customer_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$wallet) {
+                throw new MarvelBadRequestException('Wallet not found');
             }
-            $wallet->available_points = $available_points;
-            $wallet->points_used = $spend;
-            $wallet->save();
+
+            // Validate sufficient points before deduction
+            if ($wallet->available_points < $pointsToDeduct) {
+                throw new MarvelBadRequestException(
+                    "Insufficient wallet points. Available: {$wallet->available_points}, Required: {$pointsToDeduct}"
+                );
+            }
+
+            // Use atomic operations for consistency
+            $wallet->decrement('available_points', $pointsToDeduct);
+            $wallet->increment('points_used', $pointsToDeduct);
+
         } catch (Exception $e) {
             throw $e;
         }
@@ -336,11 +456,11 @@ class OrderRepository extends BaseRepository
         $translatedText = $this->formatInvoiceTranslateText($request->invoice_translated_text);
         $settings = Settings::getData($language);
         return [
-            'order'           => $order,
-            'settings'        => $settings,
+            'order' => $order,
+            'settings' => $settings,
             'translated_text' => $translatedText,
-            'is_rtl'          => $isRTL,
-            'language'        => $language,
+            'is_rtl' => $isRTL,
+            'language' => $language,
             'url' => config('shop.shop_url') . '/orders/' . $order->tracking_number
         ];
     }
@@ -353,7 +473,7 @@ class OrderRepository extends BaseRepository
      */
     protected function calculateShopIncome($parent_order)
     {
-        foreach ($parent_order->children as  $order) {
+        foreach ($parent_order->children as $order) {
             $balance = Balance::where('shop_id', '=', $order->shop_id)->first();
             $adminCommissionRate = $balance->admin_commission_rate;
             $shop_earnings = ($order->total * (100 - $adminCommissionRate)) / 100;
@@ -418,10 +538,10 @@ class OrderRepository extends BaseRepository
             $digital_file = $item->digital_file;
             for ($i = 0; $i < $order_quantity; $i++) {
                 OrderedFile::create([
-                    'purchase_key'    => Str::random(16),
+                    'purchase_key' => Str::random(16),
                     'digital_file_id' => $digital_file->id,
-                    'customer_id'     => $customer_id,
-                    'tracking_number'  => $order_tracking_number
+                    'customer_id' => $customer_id,
+                    'tracking_number' => $order_tracking_number
                 ]);
             }
         }
@@ -523,29 +643,29 @@ class OrderRepository extends BaseRepository
         foreach ($productsByShop as $shop_id => $cartProduct) {
             $amount = array_sum(array_column($cartProduct, 'subtotal'));
             $orderInput = [
-                'tracking_number'  => $this->generateTrackingNumber(),
-                'shop_id'          => $shop_id,
-                'order_status'     => $request->order_status,
-                'payment_status'   => $request->payment_status,
-                'customer_id'      => $request->customer_id,
+                'tracking_number' => $this->generateTrackingNumber(),
+                'shop_id' => $shop_id,
+                'order_status' => $request->order_status,
+                'payment_status' => $request->payment_status,
+                'customer_id' => $request->customer_id,
                 'shipping_address' => $request->shipping_address,
-                'billing_address'  => $request->billing_address,
+                'billing_address' => $request->billing_address,
                 'customer_contact' => $request->customer_contact,
-                'customer_name'    => $request->customer_name,
-                'delivery_time'    => $request->delivery_time,
-                'delivery_fee'     => 0,
-                'sales_tax'        => 0,
-                'discount'         => 0,
-                'parent_id'        => $id,
-                'amount'           => $amount,
-                'total'            => $amount,
-                'paid_total'       => $amount,
-                'language'         => $language,
-                "payment_gateway"  => $request->payment_gateway,
+                'customer_name' => $request->customer_name,
+                'delivery_time' => $request->delivery_time,
+                'delivery_fee' => 0,
+                'sales_tax' => 0,
+                'discount' => 0,
+                'parent_id' => $id,
+                'amount' => $amount,
+                'total' => $amount,
+                'paid_total' => $amount,
+                'language' => $language,
+                "payment_gateway" => $request->payment_gateway,
             ];
 
             $order = $this->create($orderInput);
-            $order->products()->attach($this->processProducts($cartProduct,  $request['customer_id'],  $order));
+            $order->products()->attach($this->processProducts($cartProduct, $request['customer_id'], $order));
             event(new OrderReceived($order));
         }
     }

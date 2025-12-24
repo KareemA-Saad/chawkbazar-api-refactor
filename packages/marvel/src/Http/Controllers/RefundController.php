@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Marvel\Database\Models\Balance;
 use Marvel\Database\Models\Order;
 use Marvel\Database\Models\Wallet;
@@ -44,7 +45,7 @@ class RefundController extends CoreController
     public function index(Request $request)
     {
         $limit = $request->limit;
-        $refunds =  $this->fetchRefunds($request)->paginate($limit);
+        $refunds = $this->fetchRefunds($request)->paginate($limit);
         $data = RefundResource::collection($refunds)->response()->getData(true);
         return formatAPIResourcePaginate($data);
     }
@@ -115,7 +116,7 @@ class RefundController extends CoreController
     public function show($id)
     {
         try {
-            $refund = $this->repository->with(['shop', 'order', 'customer', 'refund_policy','refund_reason'])->findOrFail($id);
+            $refund = $this->repository->with(['shop', 'order', 'customer', 'refund_policy', 'refund_reason'])->findOrFail($id);
             return new GetSingleRefundResource($refund);
         } catch (MarvelException $e) {
             throw new MarvelException(NOT_FOUND);
@@ -152,27 +153,52 @@ class RefundController extends CoreController
             if ($refund->status == RefundStatus::APPROVED) {
                 throw new HttpException(400, ALREADY_REFUNDED);
             }
-            $this->repository->updateRefund($request, $refund);
-            if ($request->status == RefundStatus::APPROVED) {
-                try {
-                    $order = Order::findOrFail($refund->order_id);
-                    foreach ($order->children as $childOrder) {
-                        $balance = Balance::where('shop_id', $childOrder->shop_id)->first();
-                        $balance->total_earnings = $balance->total_earnings - $childOrder->amount;
-                        $balance->current_balance = $balance->current_balance - $childOrder->amount;
-                        $balance->save();
-                    }
-                } catch (Exception $e) {
-                    throw new ModelNotFoundException(NOT_FOUND);
-                }
-                $wallet = Wallet::firstOrCreate(['customer_id' => $refund->customer_id]);
-                $walletPoints = $this->currencyToWalletPoints($refund->amount);
-                $wallet->total_points = $wallet->total_points + $walletPoints;
-                $wallet->available_points = $wallet->available_points + $walletPoints;
-                $wallet->save();
 
-                // refund approved event
+            if ($request->status == RefundStatus::APPROVED) {
+                // Wrap entire refund approval in a transaction with proper locking
+                // to prevent race conditions and ensure data consistency
+                return DB::transaction(function () use ($request, $refund) {
+                    // Update refund status first
+                    $this->repository->updateRefund($request, $refund);
+
+                    try {
+                        $order = Order::findOrFail($refund->order_id);
+                        foreach ($order->children as $childOrder) {
+                            // Lock balance record to prevent concurrent updates
+                            $balance = Balance::where('shop_id', $childOrder->shop_id)
+                                ->lockForUpdate()
+                                ->first();
+
+                            if ($balance) {
+                                // Use decrement for atomic operations
+                                $balance->decrement('total_earnings', $childOrder->amount);
+                                $balance->decrement('current_balance', $childOrder->amount);
+                            }
+                        }
+                    } catch (Exception $e) {
+                        throw new ModelNotFoundException(NOT_FOUND);
+                    }
+
+                    // Lock wallet for update to prevent race conditions
+                    $wallet = Wallet::where('customer_id', $refund->customer_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$wallet) {
+                        $wallet = Wallet::create(['customer_id' => $refund->customer_id]);
+                    }
+
+                    $walletPoints = $this->currencyToWalletPoints($refund->amount);
+                    // Use increment for atomic operations
+                    $wallet->increment('total_points', $walletPoints);
+                    $wallet->increment('available_points', $walletPoints);
+
+                    return $refund->fresh();
+                });
             }
+
+            // Non-approved status updates don't need transaction
+            $this->repository->updateRefund($request, $refund);
             return $refund;
         } else {
             throw new AuthorizationException(NOT_AUTHORIZED);
