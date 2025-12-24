@@ -20,6 +20,383 @@
         }
     ],
     "paths": {
+        "/categories": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "List all categories",
+                "description": "Retrieve a paginated list of categories with optional filtering. Returns categories with their type, parent, children relationships and products count.",
+                "operationId": "listCategories",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of categories per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "example": 15
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "parent",
+                        "in": "query",
+                        "description": "Filter by parent category. Use 'null' to get only root categories.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "null"
+                        }
+                    },
+                    {
+                        "name": "self",
+                        "in": "query",
+                        "description": "Exclude category by ID (useful when editing to exclude self from parent dropdown)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Categories retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedCategories"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create a new category",
+                "description": "Create a new product category. Requires admin permissions.",
+                "operationId": "createCategory",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Accessories"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "accessories"
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "example": "Accessories"
+                                    },
+                                    "details": {
+                                        "type": "string",
+                                        "example": "Browse our wide range of accessories."
+                                    },
+                                    "parent": {
+                                        "description": "Parent category ID for nested categories",
+                                        "type": "integer",
+                                        "example": null,
+                                        "nullable": true
+                                    },
+                                    "type_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "image": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "banner_image": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "language": {
+                                        "type": "string",
+                                        "example": "en"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Category created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/categories/{slug}": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get a single category",
+                "description": "Retrieve detailed category information by slug or ID. Includes type, parent category, and children.",
+                "operationId": "getCategory",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Category slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "men"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Category retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                }
+            }
+        },
+        "/categories/{id}": {
+            "put": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Update a category",
+                "description": "Update an existing category. Requires admin permissions.",
+                "operationId": "updateCategory",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Category ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Men's Fashion"
+                                    },
+                                    "details": {
+                                        "type": "string",
+                                        "example": "Updated description for men's fashion category."
+                                    },
+                                    "icon": {
+                                        "type": "string"
+                                    },
+                                    "parent": {
+                                        "type": "integer",
+                                        "nullable": true
+                                    },
+                                    "image": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "banner_image": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Category updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Category"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Delete a category",
+                "description": "Delete a category. Requires admin permissions. Note: Deleting a parent category may affect child categories.",
+                "operationId": "deleteCategory",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Category ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Category deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Category not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/featured-categories": {
+            "get": {
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Get featured categories",
+                "description": "Retrieve featured categories with their top products. Returns 3 categories by default. ChawkBazar specific endpoint.",
+                "operationId": "getFeaturedCategories",
+                "responses": {
+                    "200": {
+                        "description": "Featured categories retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/CategorySummary"
+                                            },
+                                            {
+                                                "properties": {
+                                                    "products": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "$ref": "#/components/schemas/ProductSummary"
+                                                        }
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/puck/page": {
             "get": {
                 "tags": [
@@ -537,6 +914,1327 @@
                 }
             }
         },
+        "/products": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "List all products",
+                "description": "Retrieve a paginated list of products with optional filtering by category, shop, type, price range, and more.",
+                "operationId": "getProducts",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of products per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 15
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1,
+                            "minimum": 1,
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for product translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Search term to filter products by name or description",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "shirt"
+                        }
+                    },
+                    {
+                        "name": "shop_id",
+                        "in": "query",
+                        "description": "Filter by shop ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "type_id",
+                        "in": "query",
+                        "description": "Filter by type/collection ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Filter by category slug",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "men"
+                        }
+                    },
+                    {
+                        "name": "min_price",
+                        "in": "query",
+                        "description": "Minimum price filter",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "max_price",
+                        "in": "query",
+                        "description": "Maximum price filter",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 500
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by product status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "publish",
+                                "draft",
+                                "approved",
+                                "rejected",
+                                "under_review"
+                            ],
+                            "example": "publish"
+                        }
+                    },
+                    {
+                        "name": "orderBy",
+                        "in": "query",
+                        "description": "Field to order by",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "created_at",
+                                "name",
+                                "price",
+                                "min_price",
+                                "max_price"
+                            ],
+                            "example": "created_at"
+                        }
+                    },
+                    {
+                        "name": "sortedBy",
+                        "in": "query",
+                        "description": "Sort direction",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "desc",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "example": "desc"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Products retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedProducts"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Create a new product",
+                "description": "Create a new product. Requires STAFF or STORE_OWNER permissions.",
+                "operationId": "createProduct",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "type_id",
+                                    "shop_id",
+                                    "product_type",
+                                    "unit"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Dido Pilot Glass"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "dido-pilot-glass",
+                                        "nullable": true
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "maxLength": 10000,
+                                        "example": "Polarized sunglasses reduce glare reflected off of roads, bodies of water, snow and other horizontal surfaces."
+                                    },
+                                    "type_id": {
+                                        "type": "integer",
+                                        "example": 15
+                                    },
+                                    "shop_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 350,
+                                        "nullable": true
+                                    },
+                                    "sale_price": {
+                                        "description": "Must be less than or equal to price",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 300,
+                                        "nullable": true
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 500,
+                                        "nullable": true
+                                    },
+                                    "sku": {
+                                        "type": "string",
+                                        "example": "SKU-GLASS-001"
+                                    },
+                                    "unit": {
+                                        "type": "string",
+                                        "example": "1 pc"
+                                    },
+                                    "product_type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "simple",
+                                            "variable"
+                                        ],
+                                        "example": "simple"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "draft",
+                                            "publish",
+                                            "approved",
+                                            "rejected",
+                                            "under_review",
+                                            "unpublish"
+                                        ],
+                                        "example": "publish"
+                                    },
+                                    "in_stock": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_taxable": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_digital": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_external": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "is_rental": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "height": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "width": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "length": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "external_product_url": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "external_product_button_text": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "categories": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            3,
+                                            6
+                                        ]
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            2
+                                        ]
+                                    },
+                                    "image": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "original": {
+                                                "type": "string"
+                                            },
+                                            "thumbnail": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "gallery": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "language": {
+                                        "type": "string",
+                                        "example": "en"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Product created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - insufficient permissions"
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/products/{slug}": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get a single product",
+                "description": "Retrieve detailed product information by slug or ID. Includes related products.",
+                "operationId": "getProduct",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Product slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "hoppister-tops"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "with",
+                        "in": "query",
+                        "description": "Relationships to include (separated by semicolon)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "categories;tags;shop;type"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Product not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "MARVEL_ERROR.NOT_FOUND"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
+            "put": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Update a product",
+                "description": "Update an existing product. Requires STAFF or STORE_OWNER permissions for the shop.",
+                "operationId": "updateProduct",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Product ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "maxLength": 255,
+                                        "example": "Updated Hoppister Tops"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description for this product."
+                                    },
+                                    "price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 399
+                                    },
+                                    "sale_price": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 350
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "example": 1500
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "draft",
+                                            "publish"
+                                        ],
+                                        "example": "publish"
+                                    },
+                                    "categories": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            3,
+                                            6
+                                        ]
+                                    },
+                                    "tags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Product updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - you don't have permission to update this product"
+                    },
+                    "404": {
+                        "description": "Product not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Delete a product",
+                "description": "Soft delete a product. Requires STAFF or STORE_OWNER permissions for the shop.",
+                "operationId": "deleteProduct",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Product ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Product deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - you don't have permission to delete this product"
+                    },
+                    "404": {
+                        "description": "Product not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/best-selling-products": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get best selling products",
+                "description": "Retrieve products sorted by total sold quantity. Useful for showcasing top performers.",
+                "operationId": "fetchBestSellingProducts",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of products to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 10
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for product translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "type_slug",
+                        "in": "query",
+                        "description": "Filter by type/collection slug",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "clothing"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Best selling products retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProductSummary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/popular-products": {
+            "get": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get popular products",
+                "description": "Retrieve products sorted by order count (popularity). Supports filtering by shop, type, and date range.",
+                "operationId": "fetchPopularProducts",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of products to return",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "maximum": 100,
+                            "minimum": 1,
+                            "example": 10
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code for product translations",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "shop_id",
+                        "in": "query",
+                        "description": "Filter by shop ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    },
+                    {
+                        "name": "type_id",
+                        "in": "query",
+                        "description": "Filter by type/collection ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 13
+                        }
+                    },
+                    {
+                        "name": "type_slug",
+                        "in": "query",
+                        "description": "Filter by type/collection slug (alternative to type_id)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "clothing"
+                        }
+                    },
+                    {
+                        "name": "range",
+                        "in": "query",
+                        "description": "Number of days to look back for popularity calculation",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 30
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Popular products retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProductSummary"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Type not found (if type_slug is provided but not found)"
+                    }
+                }
+            }
+        },
+        "/shops": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "List all shops",
+                "description": "Retrieve a paginated list of active shops with order and product counts.",
+                "operationId": "listShops",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Items per page",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number",
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shops retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedShops"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Create a new shop",
+                "description": "Create a new shop. Requires STORE_OWNER permission.",
+                "operationId": "createShop",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "My New Shop"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "A great shop for fashion lovers"
+                                    },
+                                    "logo": {
+                                        "type": "object"
+                                    },
+                                    "cover_image": {
+                                        "type": "object"
+                                    },
+                                    "address": {
+                                        "type": "object"
+                                    },
+                                    "settings": {
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Shop created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Shop"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden - needs STORE_OWNER permission"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/shops/{slug}": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Get a single shop",
+                "description": "Retrieve detailed shop information by slug or ID. Includes categories, owner, and balance (for shop owner/admin only).",
+                "operationId": "getShop",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Shop slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "urban-threads-emporium"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shop retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Shop"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Shop not found"
+                    }
+                }
+            }
+        },
+        "/shops/{id}": {
+            "put": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Update a shop",
+                "description": "Update shop details. Requires ownership or SUPER_ADMIN permission.",
+                "operationId": "updateShop",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Shop ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "logo": {
+                                        "type": "object"
+                                    },
+                                    "cover_image": {
+                                        "type": "object"
+                                    },
+                                    "address": {
+                                        "type": "object"
+                                    },
+                                    "settings": {
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Shop updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Shop"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Shop not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Delete a shop",
+                "description": "Delete a shop. Requires ownership or SUPER_ADMIN permission.",
+                "operationId": "deleteShop",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Shop ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Shop deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Shop"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Shop not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/my-shops": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Get current user's shops",
+                "description": "Retrieve all shops owned by the authenticated user.",
+                "operationId": "getMyShops",
+                "responses": {
+                    "200": {
+                        "description": "User's shops retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ShopSummary"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/followed-shops-popular-products": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Get popular products from followed shops",
+                "description": "Retrieve popular products from shops the user follows, sorted by order count.",
+                "operationId": "getFollowedShopsPopularProducts",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Popular products retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ProductSummary"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/followed-shops": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Get shops followed by current user",
+                "description": "Retrieve paginated list of shops that the authenticated user is following.",
+                "operationId": "getFollowedShops",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Followed shops retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedShops"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/follow-shop": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Check if user follows a shop",
+                "description": "Returns boolean indicating if authenticated user follows the specified shop.",
+                "operationId": "checkFollowShop",
+                "parameters": [
+                    {
+                        "name": "shop_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 2
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Follow status retrieved",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Follow or unfollow a shop",
+                "description": "Toggle follow status for a shop. Returns true if now following, false if unfollowed.",
+                "operationId": "toggleFollowShop",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "shop_id"
+                                ],
+                                "properties": {
+                                    "shop_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Follow status toggled",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/near-by-shop/{lat}/{lng}": {
+            "get": {
+                "tags": [
+                    "Shops"
+                ],
+                "summary": "Find shops near a location",
+                "description": "Returns shops within the configured maximum distance from the given coordinates, sorted by distance.",
+                "operationId": "getNearByShops",
+                "parameters": [
+                    {
+                        "name": "lat",
+                        "in": "path",
+                        "description": "Latitude",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": 40.7128
+                        }
+                    },
+                    {
+                        "name": "lng",
+                        "in": "path",
+                        "description": "Longitude",
+                        "required": true,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": -74.006
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nearby shops retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "allOf": [
+                                            {
+                                                "$ref": "#/components/schemas/ShopSummary"
+                                            },
+                                            {
+                                                "properties": {
+                                                    "distance": {
+                                                        "description": "Distance in km",
+                                                        "type": "number",
+                                                        "format": "float"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid coordinates"
+                    }
+                }
+            }
+        },
         "/token": {
             "post": {
                 "tags": [
@@ -855,6 +2553,159 @@
     },
     "components": {
         "schemas": {
+            "CategorySummary": {
+                "description": "Category summary for listings",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 3
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Men"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "men"
+                    },
+                    "icon": {
+                        "type": "string",
+                        "example": "Wallet"
+                    },
+                    "details": {
+                        "type": "string",
+                        "example": "A wonderful serenity has taken possession of my entire soul."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "products_count": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "image": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 28
+                                },
+                                "original": {
+                                    "type": "string",
+                                    "example": "https://chawkbazarlaravel.s3.ap-southeast-1.amazonaws.com/28/men.png"
+                                },
+                                "thumbnail": {
+                                    "type": "string",
+                                    "example": "https://chawkbazarlaravel.s3.ap-southeast-1.amazonaws.com/28/conversions/men-thumbnail.jpg"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "banner_image": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "original": {
+                                    "type": "string"
+                                },
+                                "thumbnail": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "Category": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/CategorySummary"
+                    },
+                    {
+                        "properties": {
+                            "created_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "updated_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "type": {
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Clothing"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "clothing"
+                                    }
+                                },
+                                "type": "object",
+                                "nullable": true
+                            },
+                            "parentCategory": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/CategorySummary"
+                                    }
+                                ],
+                                "nullable": true,
+                                "type": "object"
+                            },
+                            "children": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/CategorySummary"
+                                }
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "PaginatedCategories": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CategorySummary"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 8
+                    }
+                },
+                "type": "object"
+            },
             "AuthResponse": {
                 "properties": {
                     "token": {
@@ -1003,6 +2854,461 @@
                     }
                 },
                 "type": "object"
+            },
+            "Product": {
+                "description": "Full product details for single product view",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Hoppister Tops"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "hoppister-tops"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Fendi began life in 1925 as a fur and leather speciality store in Rome."
+                    },
+                    "type_id": {
+                        "type": "integer",
+                        "example": 13
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 350,
+                        "nullable": true
+                    },
+                    "sale_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 300,
+                        "nullable": true
+                    },
+                    "min_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 20
+                    },
+                    "max_price": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 25
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 1000
+                    },
+                    "in_stock": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "is_taxable": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "publish",
+                            "approved",
+                            "rejected",
+                            "under_review"
+                        ],
+                        "example": "publish"
+                    },
+                    "product_type": {
+                        "type": "string",
+                        "enum": [
+                            "simple",
+                            "variable"
+                        ],
+                        "example": "variable"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "1 pc"
+                    },
+                    "sku": {
+                        "type": "string",
+                        "example": "SKU-12345",
+                        "nullable": true
+                    },
+                    "shop_id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "height": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "width": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "length": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "is_digital": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "is_external": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "is_rental": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "ratings": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 4.5
+                    },
+                    "total_reviews": {
+                        "type": "integer",
+                        "example": 25
+                    },
+                    "in_wishlist": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "image": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "original": {
+                                "type": "string"
+                            },
+                            "thumbnail": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "gallery": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "shop": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 2
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Urban Threads Emporium"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "type": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 13
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Clothing"
+                            },
+                            "slug": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "related_products": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductSummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedProducts": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductSummary"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 5
+                    }
+                },
+                "type": "object"
+            },
+            "ShopSummary": {
+                "description": "Shop summary for listings",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Urban Threads Emporium"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "urban-threads-emporium"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Premium fashion and accessories store"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "orders_count": {
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "products_count": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "logo": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "original": {
+                                "type": "string"
+                            },
+                            "thumbnail": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "cover_image": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Shop": {
+                "description": "Full shop details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Urban Threads Emporium"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "urban-threads-emporium"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Premium fashion and accessories store"
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "orders_count": {
+                        "type": "integer",
+                        "example": 150
+                    },
+                    "products_count": {
+                        "type": "integer",
+                        "example": 45
+                    },
+                    "owner_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "logo": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "cover_image": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "address": {
+                        "properties": {
+                            "street_address": {
+                                "type": "string"
+                            },
+                            "city": {
+                                "type": "string"
+                            },
+                            "state": {
+                                "type": "string"
+                            },
+                            "zip": {
+                                "type": "string"
+                            },
+                            "country": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "settings": {
+                        "properties": {
+                            "contact": {
+                                "type": "string"
+                            },
+                            "website": {
+                                "type": "string"
+                            },
+                            "location": {
+                                "properties": {
+                                    "lat": {
+                                        "type": "number"
+                                    },
+                                    "lng": {
+                                        "type": "number"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "owner": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "balance": {
+                        "properties": {
+                            "current_balance": {
+                                "type": "number"
+                            },
+                            "total_earnings": {
+                                "type": "number"
+                            },
+                            "withdrawn_amount": {
+                                "type": "number"
+                            }
+                        },
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CategorySummary"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedShops": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ShopSummary"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 11
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -1015,6 +3321,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Categories",
+            "description": "Product category management - hierarchical categories with parent/child relationships"
+        },
         {
             "name": "Authentication",
             "description": "User authentication and registration endpoints"
@@ -1030,6 +3340,14 @@
         {
             "name": "Component Data",
             "description": "Data endpoints for Puck page builder components (optimized for SSR)"
+        },
+        {
+            "name": "Products",
+            "description": "Product catalog endpoints - browse, search, and manage products"
+        },
+        {
+            "name": "Shops",
+            "description": "Shop/store management - browse shops, follow shops, manage your own shop"
         }
     ]
 }

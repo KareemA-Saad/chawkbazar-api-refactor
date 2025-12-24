@@ -15,6 +15,78 @@ use Marvel\Http\Resources\CategoryResource;
 use Prettus\Validator\Exceptions\ValidatorException;
 
 
+/**
+ * @OA\Tag(name="Categories", description="Product category management - hierarchical categories with parent/child relationships")
+ *
+ * @OA\Schema(
+ *     schema="CategorySummary",
+ *     type="object",
+ *     description="Category summary for listings",
+ *     @OA\Property(property="id", type="integer", example=3),
+ *     @OA\Property(property="name", type="string", example="Men"),
+ *     @OA\Property(property="slug", type="string", example="men"),
+ *     @OA\Property(property="icon", type="string", example="Wallet"),
+ *     @OA\Property(property="details", type="string", example="A wonderful serenity has taken possession of my entire soul."),
+ *     @OA\Property(property="parent", type="integer", nullable=true, example=null),
+ *     @OA\Property(property="products_count", type="integer", example=25),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(
+ *         property="image",
+ *         type="array",
+ *         @OA\Items(
+ *             type="object",
+ *             @OA\Property(property="id", type="integer", example=28),
+ *             @OA\Property(property="original", type="string", example="https://chawkbazarlaravel.s3.ap-southeast-1.amazonaws.com/28/men.png"),
+ *             @OA\Property(property="thumbnail", type="string", example="https://chawkbazarlaravel.s3.ap-southeast-1.amazonaws.com/28/conversions/men-thumbnail.jpg")
+ *         )
+ *     ),
+ *     @OA\Property(
+ *         property="banner_image",
+ *         type="array",
+ *         @OA\Items(
+ *             type="object",
+ *             @OA\Property(property="id", type="integer"),
+ *             @OA\Property(property="original", type="string"),
+ *             @OA\Property(property="thumbnail", type="string")
+ *         )
+ *     )
+ * )
+ *
+ * @OA\Schema(
+ *     schema="Category",
+ *     allOf={@OA\Schema(ref="#/components/schemas/CategorySummary")},
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(
+ *         property="type",
+ *         type="object",
+ *         nullable=true,
+ *         @OA\Property(property="id", type="integer", example=1),
+ *         @OA\Property(property="name", type="string", example="Clothing"),
+ *         @OA\Property(property="slug", type="string", example="clothing")
+ *     ),
+ *     @OA\Property(
+ *         property="parentCategory",
+ *         type="object",
+ *         nullable=true,
+ *         ref="#/components/schemas/CategorySummary"
+ *     ),
+ *     @OA\Property(
+ *         property="children",
+ *         type="array",
+ *         @OA\Items(ref="#/components/schemas/CategorySummary")
+ *     )
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PaginatedCategories",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CategorySummary")),
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="per_page", type="integer", example=15),
+ *     @OA\Property(property="total", type="integer", example=8)
+ * )
+ */
 class CategoryController extends CoreController
 {
     public $repository;
@@ -54,10 +126,46 @@ class CategoryController extends CoreController
     //     return $this->repository->withCount(['products'])->with(['parent', 'subCategories'])->where('parent', null)->paginate($limit);
     // }
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Category[]
+     * @OA\Get(
+     *     path="/categories",
+     *     operationId="listCategories",
+     *     tags={"Categories"},
+     *     summary="List all categories",
+     *     description="Retrieve a paginated list of categories with optional filtering. Returns categories with their type, parent, children relationships and products count.",
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of categories per page",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=15, example=15)
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code for translations",
+     *         required=false,
+     *         @OA\Schema(type="string", default="en", example="en")
+     *     ),
+     *     @OA\Parameter(
+     *         name="parent",
+     *         in="query",
+     *         description="Filter by parent category. Use 'null' to get only root categories.",
+     *         required=false,
+     *         @OA\Schema(type="string", example="null")
+     *     ),
+     *     @OA\Parameter(
+     *         name="self",
+     *         in="query",
+     *         description="Exclude category by ID (useful when editing to exclude self from parent dropdown)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Categories retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/PaginatedCategories")
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -82,11 +190,37 @@ class CategoryController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param CategoryCreateRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/categories",
+     *     operationId="createCategory",
+     *     tags={"Categories"},
+     *     summary="Create a new category",
+     *     description="Create a new product category. Requires admin permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name"},
+     *             @OA\Property(property="name", type="string", maxLength=255, example="Accessories"),
+     *             @OA\Property(property="slug", type="string", example="accessories"),
+     *             @OA\Property(property="icon", type="string", example="Accessories"),
+     *             @OA\Property(property="details", type="string", example="Browse our wide range of accessories."),
+     *             @OA\Property(property="parent", type="integer", nullable=true, example=null, description="Parent category ID for nested categories"),
+     *             @OA\Property(property="type_id", type="integer", example=1),
+     *             @OA\Property(property="image", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="banner_image", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="language", type="string", example="en")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Category created successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Category")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(CategoryCreateRequest $request)
     {
@@ -102,10 +236,36 @@ class CategoryController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param string|int $params
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/categories/{slug}",
+     *     operationId="getCategory",
+     *     tags={"Categories"},
+     *     summary="Get a single category",
+     *     description="Retrieve detailed category information by slug or ID. Includes type, parent category, and children.",
+     *     @OA\Parameter(
+     *         name="slug",
+     *         in="path",
+     *         description="Category slug or ID",
+     *         required=true,
+     *         @OA\Schema(type="string", example="men")
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code for translations",
+     *         required=false,
+     *         @OA\Schema(type="string", default="en")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Category retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Category")
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Category not found"
+     *     )
+     * )
      */
     public function show(Request $request, $params)
     {
@@ -124,11 +284,40 @@ class CategoryController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param CategoryUpdateRequest $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/categories/{id}",
+     *     operationId="updateCategory",
+     *     tags={"Categories"},
+     *     summary="Update a category",
+     *     description="Update an existing category. Requires admin permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Category ID",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="Men's Fashion"),
+     *             @OA\Property(property="details", type="string", example="Updated description for men's fashion category."),
+     *             @OA\Property(property="icon", type="string"),
+     *             @OA\Property(property="parent", type="integer", nullable=true),
+     *             @OA\Property(property="image", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="banner_image", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Category updated successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Category")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=404, description="Category not found"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function update(CategoryUpdateRequest $request, $id)
     {
@@ -148,10 +337,28 @@ class CategoryController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/categories/{id}",
+     *     operationId="deleteCategory",
+     *     tags={"Categories"},
+     *     summary="Delete a category",
+     *     description="Delete a category. Requires admin permissions. Note: Deleting a parent category may affect child categories.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Category ID to delete",
+     *         required=true,
+     *         @OA\Schema(type="integer", example=3)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Category deleted successfully",
+     *         @OA\JsonContent(type="boolean", example=true)
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=404, description="Category not found")
+     * )
      */
     public function destroy($id)
     {
@@ -163,10 +370,28 @@ class CategoryController extends CoreController
     }
 
     /**
-     * fetchFeaturedCategories -- Chawkbazar specific here
-     *
-     * @param  mixed $request
-     * @return void
+     * @OA\Get(
+     *     path="/featured-categories",
+     *     operationId="getFeaturedCategories",
+     *     tags={"Categories"},
+     *     summary="Get featured categories",
+     *     description="Retrieve featured categories with their top products. Returns 3 categories by default. ChawkBazar specific endpoint.",
+     *     @OA\Response(
+     *         response=200,
+     *         description="Featured categories retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 allOf={@OA\Schema(ref="#/components/schemas/CategorySummary")},
+     *                 @OA\Property(
+     *                     property="products",
+     *                     type="array",
+     *                     @OA\Items(ref="#/components/schemas/ProductSummary")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function fetchFeaturedCategories(Request $request)
     {
