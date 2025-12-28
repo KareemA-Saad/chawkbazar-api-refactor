@@ -5,6 +5,7 @@ namespace Marvel\Traits;
 use Marvel\Database\Models\Balance;
 use Marvel\Database\Models\Commission;
 use Marvel\Database\Models\Order;
+use Marvel\Database\Models\PlatformCommission;
 use Marvel\Database\Models\Settings;
 use Marvel\Enums\OrderStatus;
 use Marvel\Enums\PaymentStatus;
@@ -29,9 +30,11 @@ trait OrderStatusManagerWithPaymentTrait
     public function manageVendorBalance($order, $order_status, $prev_order_status)
     {
         //check if new status is completed then add balance to vendor
-        if ($order_status === OrderStatus::COMPLETED) $this->checkIfChildOrder($order, 'add');
+        if ($order_status === OrderStatus::COMPLETED)
+            $this->checkIfChildOrder($order, 'add');
         //check if previous status was completed then we need to deduct the amount from vendor balance
-        elseif ($prev_order_status === OrderStatus::COMPLETED) $this->checkIfChildOrder($order, 'deduct');
+        elseif ($prev_order_status === OrderStatus::COMPLETED)
+            $this->checkIfChildOrder($order, 'deduct');
     }
 
     /**
@@ -76,10 +79,16 @@ trait OrderStatusManagerWithPaymentTrait
         $total_earnings = $balance->total_earnings;
         $adminCommissionDefaultRate = $this->getCommissionRate($total_earnings);
         $adminCommissionCustomRate = $balance->admin_commission_rate;
+
+        // Determine commission rate and calculate shop earnings
+        $appliedCommissionRate = $adminCommissionCustomRate;
+        $commissionType = 'custom';
+
         if ($isMultiCommissionRate) {
             if (!$balance->is_custom_commission) {
                 $shop_earnings = ($order->total * (100 - $adminCommissionDefaultRate)) / 100;
-                // $balance->admin_commission_rate = $adminCommissionDefaultRate;
+                $appliedCommissionRate = $adminCommissionDefaultRate;
+                $commissionType = 'tier';
             } else {
                 $shop_earnings = ($order->total * (100 - $adminCommissionCustomRate)) / 100;
             }
@@ -87,7 +96,22 @@ trait OrderStatusManagerWithPaymentTrait
             $shop_earnings = ($order->total * (100 - $adminCommissionCustomRate)) / 100;
         }
 
-        if ($action_type == 'deduct') $shop_earnings = $shop_earnings * -1;
+        // Record commission for audit trail (only on 'add', not 'deduct')
+        if ($action_type === 'add') {
+            $commissionAmount = $order->total - $shop_earnings;
+            PlatformCommission::create([
+                'order_id' => $order->id,
+                'shop_id' => $order->shop_id,
+                'order_total' => $order->total,
+                'commission_rate' => $appliedCommissionRate,
+                'commission_amount' => $commissionAmount,
+                'shop_earnings' => $shop_earnings,
+                'commission_type' => $commissionType,
+            ]);
+        }
+
+        if ($action_type == 'deduct')
+            $shop_earnings = $shop_earnings * -1;
         $balance->total_earnings = $balance->total_earnings + $shop_earnings;
 
         if ($isMultiCommissionRate) {
@@ -293,7 +317,8 @@ trait OrderStatusManagerWithPaymentTrait
         } else {
             $childOrders = $parent_order->children;
             foreach ($childOrders as $childOrder) {
-                if ($childOrder->order_status == OrderStatus::CANCELLED) continue;
+                if ($childOrder->order_status == OrderStatus::CANCELLED)
+                    continue;
                 $childOrder->cancelled_amount = $childOrder->total;
                 $childOrder->paid_total = 0;
                 $childOrder->total = 0;

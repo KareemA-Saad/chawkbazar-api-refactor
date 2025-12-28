@@ -20,6 +20,333 @@
         }
     ],
     "paths": {
+        "/authors": {
+            "get": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "List all authors",
+                "description": "Retrieve a paginated list of authors with product counts.",
+                "operationId": "listAuthors",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "example": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authors retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedAuthors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "Create a new author",
+                "description": "Create a new author. Requires active permissions for the associated shop.",
+                "operationId": "createAuthor",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "language"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "George RR Martin"
+                                    },
+                                    "language": {
+                                        "type": "string",
+                                        "example": "en"
+                                    },
+                                    "bio": {
+                                        "type": "string"
+                                    },
+                                    "quote": {
+                                        "type": "string"
+                                    },
+                                    "born": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "death": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "languages": {
+                                        "type": "string"
+                                    },
+                                    "socials": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "image": {
+                                        "type": "object"
+                                    },
+                                    "cover_image": {
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Author created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/authors/{slug}": {
+            "get": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "Get a single author",
+                "description": "Retrieve detailed author information by slug or ID.",
+                "operationId": "getAuthor",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Author slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "leo-tolstoy"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Author retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Author not found"
+                    }
+                }
+            }
+        },
+        "/authors/{id}": {
+            "put": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "Update an author",
+                "description": "Update author details. Requires permissions for the associated shop.",
+                "operationId": "updateAuthor",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Author ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Author"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Author updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Author not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "Delete an author",
+                "description": "Delete an author. Requires SUPER_ADMIN permissions.",
+                "operationId": "deleteAuthor",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Author ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Author deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Author"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Author not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/top-authors": {
+            "get": {
+                "tags": [
+                    "Authors"
+                ],
+                "summary": "Get top authors",
+                "description": "Retrieve list of authors with the most products.",
+                "operationId": "getTopAuthors",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of results",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Top authors retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Author"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/categories": {
             "get": {
                 "tags": [
@@ -397,6 +724,141 @@
                 }
             }
         },
+        "/cms-pages": {
+            "get": {
+                "tags": [
+                    "CMS Pages"
+                ],
+                "summary": "List all CMS pages",
+                "description": "Retrieve a paginated list of CMS pages like Privacy Policy, Terms, etc.",
+                "operationId": "listCmsPages",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CMS pages retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedCmsPages"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "CMS Pages"
+                ],
+                "summary": "Create a new CMS page",
+                "description": "Create a new CMS page. Requires EDITOR or SUPER_ADMIN permissions.",
+                "operationId": "createCmsPage",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "slug"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Privacy Policy"
+                                    },
+                                    "slug": {
+                                        "type": "string",
+                                        "example": "privacy-policy"
+                                    },
+                                    "content": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "meta": {
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "CMS page created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CmsPage"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cms-pages/{slug}": {
+            "get": {
+                "tags": [
+                    "CMS Pages"
+                ],
+                "summary": "Get a CMS page by slug",
+                "description": "Retrieve detailed CMS page information by slug.",
+                "operationId": "getCmsPageBySlug",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "privacy-policy"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CMS page retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CmsPage"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Page not found"
+                    }
+                }
+            }
+        },
         "/api/puck/page": {
             "get": {
                 "tags": [
@@ -576,6 +1038,94 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/cms-pages/{id}": {
+            "put": {
+                "tags": [
+                    "CMS Pages"
+                ],
+                "summary": "Update a CMS page",
+                "description": "Update CMS page details. Requires EDITOR or SUPER_ADMIN permissions.",
+                "operationId": "updateCmsPage",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CmsPage"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "CMS page updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CmsPage"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Page not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "CMS Pages"
+                ],
+                "summary": "Delete a CMS page",
+                "description": "Delete a CMS page. Requires EDITOR or SUPER_ADMIN permissions.",
+                "operationId": "deleteCmsPage",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CMS page deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Page not found"
                     }
                 },
                 "security": [
@@ -907,6 +1457,323 @@
                                         }
                                     },
                                     "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/manufacturers": {
+            "get": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "List all manufacturers",
+                "description": "Retrieve a paginated list of manufacturers/brands.",
+                "operationId": "listManufacturers",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "example": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturers retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedManufacturers"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Create a new manufacturer",
+                "description": "Create a new manufacturer. Requires permissions for the associated shop.",
+                "operationId": "createManufacturer",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "type_id"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Apple"
+                                    },
+                                    "type_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "description": {
+                                        "type": "string"
+                                    },
+                                    "website": {
+                                        "type": "string",
+                                        "format": "url"
+                                    },
+                                    "socials": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "image": {
+                                        "type": "object"
+                                    },
+                                    "cover_image": {
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Manufacturer created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Manufacturer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/manufacturers/{slug}": {
+            "get": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Get a single manufacturer",
+                "description": "Retrieve detailed manufacturer information by slug or ID.",
+                "operationId": "getManufacturer",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Manufacturer slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "apple"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Manufacturer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    }
+                }
+            }
+        },
+        "/manufacturers/{id}": {
+            "put": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Update a manufacturer",
+                "description": "Update manufacturer details. Requires permissions for the associated shop.",
+                "operationId": "updateManufacturer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Manufacturer ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Manufacturer"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Manufacturer"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Delete a manufacturer",
+                "description": "Delete a manufacturer. Requires shop permissions.",
+                "operationId": "deleteManufacturer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Manufacturer ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Manufacturer deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Manufacturer"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Manufacturer not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/top-manufacturers": {
+            "get": {
+                "tags": [
+                    "Manufacturers"
+                ],
+                "summary": "Get top manufacturers",
+                "description": "Retrieve list of manufacturers with the most products.",
+                "operationId": "getTopManufacturers",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of results",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10,
+                            "example": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Top manufacturers retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Manufacturer"
+                                    }
                                 }
                             }
                         }
@@ -2235,6 +3102,530 @@
                 }
             }
         },
+        "/tags": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "List all product tags",
+                "description": "Retrieve a paginated list of product tags.",
+                "operationId": "listTags",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15,
+                            "example": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tags retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaginatedTags"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Create a new tag",
+                "description": "Create a new tag. Requires admin permissions.",
+                "operationId": "createTag",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "type_id"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Organic"
+                                    },
+                                    "type_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "details": {
+                                        "type": "string",
+                                        "example": "Organic products"
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "example": "OrganicIcon"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Tag created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tag"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/tags/{slug}": {
+            "get": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Get a single product tag",
+                "description": "Retrieve detailed information about a tag by slug or ID.",
+                "operationId": "getTag",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Tag slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "organic"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tag"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Tag not found"
+                    }
+                }
+            }
+        },
+        "/tags/{id}": {
+            "put": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Update a tag",
+                "description": "Update tag details. Requires admin permissions.",
+                "operationId": "updateTag",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tag ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Tag"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tag updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Tag"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Tag not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Tags"
+                ],
+                "summary": "Delete a tag",
+                "description": "Delete a product tag. Requires admin permissions.",
+                "operationId": "deleteTag",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Tag ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tag deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Tag not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/types": {
+            "get": {
+                "tags": [
+                    "Types"
+                ],
+                "summary": "List all product types",
+                "description": "Retrieve all product types/collections like Grocery, Bakery, Clothing, etc.",
+                "operationId": "listTypes",
+                "parameters": [
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en",
+                            "example": "en"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1000,
+                            "example": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Types retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Type"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Types"
+                ],
+                "summary": "Create a new product type",
+                "description": "Create a new type. Requires admin permissions.",
+                "operationId": "createType",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "settings"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Bakery"
+                                    },
+                                    "icon": {
+                                        "type": "string",
+                                        "example": "BakeryIcon"
+                                    },
+                                    "settings": {
+                                        "properties": {
+                                            "isFullWidth": {
+                                                "type": "boolean",
+                                                "example": true
+                                            },
+                                            "layoutType": {
+                                                "type": "string",
+                                                "example": "classic"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "banners": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "promotional_sliders": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Type created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Type"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/types/{slug}": {
+            "get": {
+                "tags": [
+                    "Types"
+                ],
+                "summary": "Get a single product type",
+                "description": "Retrieve detailed information about a type by slug or ID.",
+                "operationId": "getType",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "path",
+                        "description": "Type slug or ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "example": "grocery"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "description": "Language code",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Type retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Type"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Type not found"
+                    }
+                }
+            }
+        },
+        "/types/{id}": {
+            "put": {
+                "tags": [
+                    "Types"
+                ],
+                "summary": "Update a product type",
+                "description": "Update type details. Requires admin permissions.",
+                "operationId": "updateType",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Type ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Type"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Type updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Type"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Type not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Types"
+                ],
+                "summary": "Delete a product type",
+                "description": "Delete a product type. Requires admin permissions.",
+                "operationId": "deleteType",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Type ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Type deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Type not found"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/token": {
             "post": {
                 "tags": [
@@ -2553,6 +3944,106 @@
     },
     "components": {
         "schemas": {
+            "Author": {
+                "description": "Author details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Leo Tolstoy"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "leo-tolstoy"
+                    },
+                    "bio": {
+                        "type": "string",
+                        "example": "Count Lev Nikolayevich Tolstoy, usually referred to in English as Leo Tolstoy, was a Russian writer."
+                    },
+                    "quote": {
+                        "type": "string",
+                        "example": "All, everything that I understand, I understand only because I love."
+                    },
+                    "born": {
+                        "type": "string",
+                        "example": "1828-09-09"
+                    },
+                    "death": {
+                        "type": "string",
+                        "example": "1910-11-20"
+                    },
+                    "languages": {
+                        "type": "string",
+                        "example": "Russian, French"
+                    },
+                    "is_approved": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "products_count": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "translated_languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "en"
+                        ]
+                    },
+                    "socials": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "image": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "cover_image": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedAuthors": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Author"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 100
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 7
+                    }
+                },
+                "type": "object"
+            },
             "CategorySummary": {
                 "description": "Category summary for listings",
                 "properties": {
@@ -2786,6 +4277,71 @@
                 },
                 "type": "object"
             },
+            "CmsPage": {
+                "description": "CMS Page details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Privacy Policy"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "privacy-policy"
+                    },
+                    "content": {
+                        "description": "List of content blocks",
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "meta": {
+                        "description": "SEO metadata",
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedCmsPages": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CmsPage"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
             "ProductSummary": {
                 "properties": {
                     "id": {
@@ -2851,6 +4407,97 @@
                         },
                         "type": "object",
                         "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Manufacturer": {
+                "description": "Manufacturer details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Apple"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "apple"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Apple Inc. is an American multinational technology company."
+                    },
+                    "website": {
+                        "type": "string",
+                        "example": "https://www.apple.com"
+                    },
+                    "is_approved": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "products_count": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "translated_languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "en"
+                        ]
+                    },
+                    "socials": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "image": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "cover_image": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/Type"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedManufacturers": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Manufacturer"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 100
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 7
                     }
                 },
                 "type": "object"
@@ -3309,6 +4956,149 @@
                     }
                 },
                 "type": "object"
+            },
+            "Tag": {
+                "description": "Product tag details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Organic"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "organic"
+                    },
+                    "details": {
+                        "type": "string",
+                        "example": "Fresh organic products",
+                        "nullable": true
+                    },
+                    "image": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "icon": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "translated_languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "en"
+                        ]
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/Type"
+                    }
+                },
+                "type": "object"
+            },
+            "PaginatedTags": {
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Tag"
+                        }
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 50
+                    },
+                    "last_page": {
+                        "type": "integer",
+                        "example": 4
+                    }
+                },
+                "type": "object"
+            },
+            "Type": {
+                "description": "Product type details",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Grocery"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "grocery"
+                    },
+                    "language": {
+                        "type": "string",
+                        "example": "en"
+                    },
+                    "translated_languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "en"
+                        ]
+                    },
+                    "icon": {
+                        "type": "string",
+                        "example": "FruitsVegetable",
+                        "nullable": true
+                    },
+                    "images": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "banners": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "promotional_sliders": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        },
+                        "nullable": true
+                    },
+                    "settings": {
+                        "properties": {
+                            "isFullWidth": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "layoutType": {
+                                "type": "string",
+                                "example": "classic"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -3321,6 +5111,10 @@
         }
     },
     "tags": [
+        {
+            "name": "Authors",
+            "description": "Author management - browse and manage book authors"
+        },
         {
             "name": "Categories",
             "description": "Product category management - hierarchical categories with parent/child relationships"
@@ -3342,12 +5136,28 @@
             "description": "Data endpoints for Puck page builder components (optimized for SSR)"
         },
         {
+            "name": "Manufacturers",
+            "description": "Manufacturer/Brand management - browse and manage product brands"
+        },
+        {
             "name": "Products",
             "description": "Product catalog endpoints - browse, search, and manage products"
         },
         {
             "name": "Shops",
             "description": "Shop/store management - browse shops, follow shops, manage your own shop"
+        },
+        {
+            "name": "Tags",
+            "description": "Product tags management - organize products with tags"
+        },
+        {
+            "name": "Types",
+            "description": "Product types/collections management - e.g., Grocery, Bakery, Furniture"
+        },
+        {
+            "name": "CMS Pages",
+            "description": "CMS Pages"
         }
     ]
 }

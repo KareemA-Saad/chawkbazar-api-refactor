@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Marvel\Database\Models\Balance;
 use Marvel\Database\Models\Coupon;
+use Marvel\Database\Models\CouponUsage;
 use Marvel\Database\Models\Order;
 use Marvel\Database\Models\OrderedFile;
 use Marvel\Database\Models\OrderWalletPoint;
@@ -171,6 +172,10 @@ class OrderRepository extends BaseRepository
         if (isset($request->coupon_id)) {
             try {
                 $coupon = Coupon::findOrFail($request['coupon_id']);
+
+                // Validate coupon usage limits and conditions
+                $this->validateCouponUsage($coupon, $request['amount'], $request->user());
+
                 $request['discount'] = $this->calculateDiscount($coupon, $request['amount']);
             } catch (Exception $th) {
                 throw $th;
@@ -199,6 +204,10 @@ class OrderRepository extends BaseRepository
                 $order = $this->createOrder($request);
                 // Deduct stock after order creation
                 $this->deductStock($request['products']);
+                // Record coupon usage
+                if (isset($request['coupon_id'])) {
+                    $this->recordCouponUsage($request['coupon_id'], $order->id, $user?->id);
+                }
                 $this->storeOrderWalletPoint($request['paid_total'], $order->id);
                 $this->manageWalletAmount($request['paid_total'], $user->id);
                 return $order;
@@ -211,6 +220,11 @@ class OrderRepository extends BaseRepository
 
         // Deduct stock after successful order creation
         $this->deductStock($request['products']);
+
+        // Record coupon usage
+        if (isset($request['coupon_id'])) {
+            $this->recordCouponUsage($request['coupon_id'], $order->id, $request->user()?->id);
+        }
 
         if (($useWalletPoints || $request->isFullWalletPayment) && $user) {
             $this->storeOrderWalletPoint(round($request['paid_total'], 2) - $amount, $order->id);
@@ -336,6 +350,71 @@ class OrderRepository extends BaseRepository
                     ->decrement('quantity', $orderQuantity);
             }
         }
+    }
+
+    /**
+     * Validate coupon usage limits, date validity, and minimum cart amount.
+     * Throws exception if coupon cannot be used.
+     *
+     * @param Coupon $coupon
+     * @param float $cartAmount
+     * @param User|null $user
+     * @throws MarvelBadRequestException
+     */
+    protected function validateCouponUsage(Coupon $coupon, float $cartAmount, ?User $user): void
+    {
+        // Check if coupon has expired
+        if ($coupon->expire_at && now()->gt($coupon->expire_at)) {
+            throw new MarvelBadRequestException('This coupon has expired');
+        }
+
+        // Check if coupon is not yet active
+        if ($coupon->active_from && now()->lt($coupon->active_from)) {
+            throw new MarvelBadRequestException('This coupon is not yet active');
+        }
+
+        // Check minimum cart amount
+        if ($coupon->minimum_cart_amount && $cartAmount < $coupon->minimum_cart_amount) {
+            throw new MarvelBadRequestException(
+                "Minimum cart amount of {$coupon->minimum_cart_amount} required for this coupon"
+            );
+        }
+
+        // Check total usage limit (max_uses field on coupon)
+        if ($coupon->max_uses) {
+            $usageCount = CouponUsage::where('coupon_id', $coupon->id)->count();
+            if ($usageCount >= $coupon->max_uses) {
+                throw new MarvelBadRequestException('This coupon has reached its usage limit');
+            }
+        }
+
+        // Check per-user usage limit (one coupon per user)
+        if ($user) {
+            $userAlreadyUsed = CouponUsage::where('coupon_id', $coupon->id)
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if ($userAlreadyUsed) {
+                throw new MarvelBadRequestException('You have already used this coupon');
+            }
+        }
+    }
+
+    /**
+     * Record coupon usage after order creation.
+     *
+     * @param int $couponId
+     * @param int $orderId
+     * @param int|null $userId
+     */
+    protected function recordCouponUsage(int $couponId, int $orderId, ?int $userId): void
+    {
+        CouponUsage::create([
+            'coupon_id' => $couponId,
+            'order_id' => $orderId,
+            'user_id' => $userId,
+            'used_at' => now(),
+        ]);
     }
 
 
