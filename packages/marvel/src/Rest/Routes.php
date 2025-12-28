@@ -66,34 +66,70 @@ Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Route::get('/email/verify/{id}/{hash}', [UserController::class, 'verifyEmail'])->name('verification.verify');
 
-Route::post('/register', [UserController::class, 'register']);
-Route::post('/token', [UserController::class, 'token']);
+/**
+ * Authentication Routes - Rate Limited (10/min per IP)
+ * Protects against brute force and credential stuffing
+ */
+Route::middleware(['throttle:auth'])->group(function () {
+    Route::post('/register', [UserController::class, 'register']);
+    Route::post('/token', [UserController::class, 'token']);
+    Route::post('/social-login-token', [UserController::class, 'socialLogin']);
+});
+
+// Logout is not rate limited - users should always be able to log out
 Route::post('/logout', [UserController::class, 'logout']);
-Route::post('/forget-password', [UserController::class, 'forgetPassword']);
-Route::post('/verify-forget-password-token', [UserController::class, 'verifyForgetPasswordToken']);
-Route::post('/reset-password', [UserController::class, 'resetPassword']);
-Route::post('/contact-us', [UserController::class, 'contactAdmin']);
-Route::post('/social-login-token', [UserController::class, 'socialLogin']);
-Route::post('/send-otp-code', [UserController::class, 'sendOtpCode']);
-Route::post('/verify-otp-code', [UserController::class, 'verifyOtpCode']);
-Route::post('/otp-login', [UserController::class, 'otpLogin']);
+
+/**
+ * Password Reset Routes - Rate Limited (5/min per IP)
+ * Protects against email bombing and account takeover
+ */
+Route::middleware(['throttle:sensitive'])->group(function () {
+    Route::post('/forget-password', [UserController::class, 'forgetPassword']);
+    Route::post('/verify-forget-password-token', [UserController::class, 'verifyForgetPasswordToken']);
+    Route::post('/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/contact-us', [UserController::class, 'contactAdmin']);
+});
+
+/**
+ * OTP Routes - Strictly Rate Limited (3/min per IP)
+ * Protects against SMS bombing (expensive!) and OTP brute force
+ */
+Route::middleware(['throttle:otp'])->group(function () {
+    Route::post('/send-otp-code', [UserController::class, 'sendOtpCode']);
+    Route::post('/verify-otp-code', [UserController::class, 'verifyOtpCode']);
+    Route::post('/otp-login', [UserController::class, 'otpLogin']);
+});
+
 Route::get('top-authors', [AuthorController::class, 'topAuthor']);
 Route::get('top-manufacturers', [ManufacturerController::class, 'topManufacturer']);
 Route::get('popular-products', [ProductController::class, 'popularProducts']);
 Route::get('best-selling-products', [ProductController::class, 'bestSellingProducts']);
 Route::get('check-availability', [ProductController::class, 'checkAvailability']);
 Route::get("products/calculate-rental-price", [ProductController::class, 'calculateRentalPrice']);
-Route::post('import-products', [ProductController::class, 'importProducts']);
-Route::post('import-variation-options', [ProductController::class, 'importVariationOptions']);
+
+/**
+ * Import/Export Routes - Rate Limited (uploads)
+ * Protects against storage and processing abuse
+ */
+Route::middleware(['throttle:uploads'])->group(function () {
+    Route::post('import-products', [ProductController::class, 'importProducts']);
+    Route::post('import-variation-options', [ProductController::class, 'importVariationOptions']);
+    Route::post('import-attributes', [AttributeController::class, 'importAttributes']);
+});
+
 Route::get('export-products/{shop_id}', [ProductController::class, 'exportProducts']);
 Route::get('export-variation-options/{shop_id}', [ProductController::class, 'exportVariableOptions']);
 Route::post('generate-description', [ProductController::class, 'generateDescription']);
-Route::post('import-attributes', [AttributeController::class, 'importAttributes']);
 Route::get('export-attributes/{shop_id}', [AttributeController::class, 'exportAttributes']);
 Route::get('download_url/token/{token}', [DownloadController::class, 'downloadFile'])->name('download_url.token');
 Route::get('export-order/token/{token}', [OrderController::class, 'exportOrder'])->name('export_order.token');
 Route::post('subscribe-to-newsletter', [UserController::class, 'subscribeToNewsletter'])->name('subscribeToNewsletter');
 Route::get('download-invoice/token/{token}', [OrderController::class, 'downloadInvoice'])->name('download_invoice.token');
+
+/**
+ * Payment Webhooks - NOT rate limited
+ * Payment providers need unrestricted access
+ */
 Route::post('webhooks/razorpay', [WebHookController::class, 'razorpay']);
 Route::post('webhooks/stripe', [WebHookController::class, 'stripe']);
 Route::post('webhooks/paypal', [WebHookController::class, 'paypal']);
@@ -172,8 +208,20 @@ Route::apiResource('manufacturers', ManufacturerController::class, [
     'only' => ['index', 'show'],
 ]);
 Route::post('orders/checkout/verify', [CheckoutController::class, 'verify']);
+
+/**
+ * Order Creation - Rate Limited (10/min per user)
+ * Protects against order spam and inventory locking attacks
+ */
+Route::middleware(['throttle:orders'])->group(function () {
+    Route::apiResource('orders', OrderController::class, [
+        'only' => ['store'],
+    ]);
+});
+
+// Order viewing is not rate limited - users need to check their order status
 Route::apiResource('orders', OrderController::class, [
-    'only' => ['show', 'store'],
+    'only' => ['show'],
 ]);
 
 Route::post('/email/verification-notification', [UserController::class, 'sendVerificationEmail'])
@@ -240,24 +288,32 @@ Route::group(['middleware' => ['can:' . Permission::CUSTOMER, 'auth:sanctum', 'e
     Route::apiResource('orders', OrderController::class, [
         'only' => ['index'],
     ]);
-    Route::apiResource('reviews', ReviewController::class, [
-        'only' => ['store', 'update']
-    ]);
-    Route::apiResource('questions', QuestionController::class, [
-        'only' => ['store'],
-    ]);
-    Route::apiResource('feedbacks', FeedbackController::class, [
-        'only' => ['store'],
-    ]);
-    Route::apiResource('abusive_reports', AbusiveReportController::class, [
-        'only' => ['store'],
-    ]);
+
+    /**
+     * Content Creation Routes - Rate Limited (5/min per user)
+     * Protects against review bombing, spam, and fake content
+     */
+    Route::middleware(['throttle:content'])->group(function () {
+        Route::apiResource('reviews', ReviewController::class, [
+            'only' => ['store', 'update']
+        ]);
+        Route::apiResource('questions', QuestionController::class, [
+            'only' => ['store'],
+        ]);
+        Route::apiResource('feedbacks', FeedbackController::class, [
+            'only' => ['store'],
+        ]);
+        Route::apiResource('abusive_reports', AbusiveReportController::class, [
+            'only' => ['store'],
+        ]);
+        Route::post('messages/conversations/{conversation_id}', [MessageController::class, 'store']);
+    });
+
     Route::apiResource('conversations', ConversationController::class, [
         'only' => ['index', 'store'],
     ]);
     Route::get('conversations/{conversation_id}', [ConversationController::class, 'show']);
     Route::get('messages/conversations/{conversation_id}', [MessageController::class, 'index']);
-    Route::post('messages/conversations/{conversation_id}', [MessageController::class, 'store']);
     Route::post('messages/seen/{conversation_id}', [MessageController::class, 'seen']);
     Route::get('my-questions', [QuestionController::class, 'myQuestions']);
     Route::get('my-reports', [AbusiveReportController::class, 'myReports']);
@@ -268,9 +324,15 @@ Route::group(['middleware' => ['can:' . Permission::CUSTOMER, 'auth:sanctum', 'e
     Route::get('wishlists/in_wishlist/{product_id}', [WishlistController::class, 'in_wishlist']);
     Route::get('my-wishlists', [ProductController::class, 'myWishlists']);
     Route::get('orders/tracking-number/{tracking_number}', 'Marvel\Http\Controllers\OrderController@findByTrackingNumber');
-    Route::apiResource('attachments', AttachmentController::class, [
-        'only' => ['store', 'update', 'destroy'],
-    ]);
+
+    /**
+     * File Upload Routes - Rate Limited (10/min per user)
+     */
+    Route::middleware(['throttle:uploads'])->group(function () {
+        Route::apiResource('attachments', AttachmentController::class, [
+            'only' => ['store', 'update', 'destroy'],
+        ]);
+    });
 
     Route::put('users/{id}', [UserController::class, 'update']);
     Route::post('/change-password', [UserController::class, 'changePassword']);
@@ -278,13 +340,22 @@ Route::group(['middleware' => ['can:' . Permission::CUSTOMER, 'auth:sanctum', 'e
     Route::apiResource('address', AddressController::class, [
         'only' => ['destroy'],
     ]);
-    Route::apiResource(
-        'refunds',
-        RefundController::class,
-        [
-            'only' => ['index', 'store', 'show'],
-        ]
-    );
+
+    /**
+     * Refund Routes - Rate Limited (5/min per user)
+     * Protects against refund fraud attempts
+     */
+    Route::middleware(['throttle:refunds'])->group(function () {
+        Route::apiResource('refunds', RefundController::class, [
+            'only' => ['store'],
+        ]);
+    });
+
+    // Refund viewing is not rate limited
+    Route::apiResource('refunds', RefundController::class, [
+        'only' => ['index', 'show'],
+    ]);
+
     Route::get('downloads', [DownloadController::class, 'fetchDownloadableFiles']);
     Route::post('downloads/digital_file', [DownloadController::class, 'generateDownloadableUrl']);
     Route::get('/followed-shops-popular-products', [ShopController::class, 'followedShopsPopularProducts']);

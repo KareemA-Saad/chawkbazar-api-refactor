@@ -56,8 +56,54 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        // General API rate limit - prevents scraping and DoS
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Authentication endpoints - login, register, social login
+        // Protects against brute force and credential stuffing
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // OTP endpoints - stricter limit due to SMS/email costs
+        // Protects against OTP bombing and brute force
+        RateLimiter::for('otp', function (Request $request) {
+            return Limit::perMinute(3)->by($request->ip());
+        });
+
+        // Sensitive operations - password reset, contact forms
+        // Protects against email bombing and spam
+        RateLimiter::for('sensitive', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        // Order creation - per authenticated user or IP
+        // Protects against order spam and inventory locking attacks
+        RateLimiter::for('orders', function (Request $request) {
+            return Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Content creation - reviews, questions, messages
+        // Protects against spam and fake review bombing
+        RateLimiter::for('content', function (Request $request) {
+            return Limit::perMinute(5)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Refund requests - stricter limit for financial operations
+        RateLimiter::for('refunds', function (Request $request) {
+            return Limit::perMinute(5)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // File uploads - prevent storage abuse
+        RateLimiter::for('uploads', function (Request $request) {
+            return Limit::perMinute(10)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        // Search endpoints - prevent scraping
+        RateLimiter::for('search', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
         });
     }
 }

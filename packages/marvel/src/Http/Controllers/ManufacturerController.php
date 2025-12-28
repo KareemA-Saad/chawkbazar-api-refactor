@@ -14,6 +14,38 @@ use Marvel\Http\Requests\ManufacturerRequest;
 use Marvel\Http\Resources\ManufacturerResource;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Manufacturers", description="Manufacturer/Brand management - browse and manage product brands")
+ *
+ * @OA\Schema(
+ *     schema="Manufacturer",
+ *     type="object",
+ *     description="Manufacturer details",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Apple"),
+ *     @OA\Property(property="slug", type="string", example="apple"),
+ *     @OA\Property(property="description", type="string", example="Apple Inc. is an American multinational technology company."),
+ *     @OA\Property(property="website", type="string", example="https://www.apple.com"),
+ *     @OA\Property(property="is_approved", type="boolean", example=true),
+ *     @OA\Property(property="products_count", type="integer", example=50),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="translated_languages", type="array", @OA\Items(type="string"), example={"en"}),
+ *     @OA\Property(property="socials", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="image", type="object", nullable=true),
+ *     @OA\Property(property="cover_image", type="object", nullable=true),
+ *     @OA\Property(property="type", ref="#/components/schemas/Type")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PaginatedManufacturers",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Manufacturer")),
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="per_page", type="integer", example=15),
+ *     @OA\Property(property="total", type="integer", example=100),
+ *     @OA\Property(property="last_page", type="integer", example=7)
+ * )
+ */
 class ManufacturerController extends CoreController
 {
     public $repository;
@@ -25,25 +57,52 @@ class ManufacturerController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Manufacturer[]
+     * @OA\Get(
+     *     path="/manufacturers",
+     *     operationId="listManufacturers",
+     *     tags={"Manufacturers"},
+     *     summary="List all manufacturers",
+     *     description="Retrieve a paginated list of manufacturers/brands.",
+     *     @OA\Parameter(name="language", in="query", description="Language code", required=false, @OA\Schema(type="string", default="en", example="en")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", required=false, @OA\Schema(type="integer", default=15, example=15)),
+     *     @OA\Response(response=200, description="Manufacturers retrieved successfully", @OA\JsonContent(ref="#/components/schemas/PaginatedManufacturers"))
+     * )
      */
     public function index(Request $request)
     {
         $language = $request->language ?? DEFAULT_LANGUAGE;
-        $limit = $request->limit ?   $request->limit : 15;
+        $limit = $request->limit ? $request->limit : 15;
         $manufacturers = $this->repository->where('language', $language)->with('type')->paginate($limit);
         $data = ManufacturerResource::collection($manufacturers)->response()->getData(true);
         return formatAPIResourcePaginate($data);
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param ManufacturerRequest $request
-     * @return mixed
+     * @OA\Post(
+     *     path="/manufacturers",
+     *     operationId="createManufacturer",
+     *     tags={"Manufacturers"},
+     *     summary="Create a new manufacturer",
+     *     description="Create a new manufacturer. Requires permissions for the associated shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "type_id"},
+     *             @OA\Property(property="name", type="string", example="Apple"),
+     *             @OA\Property(property="type_id", type="integer", example=1),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="website", type="string", format="url"),
+     *             @OA\Property(property="socials", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="image", type="object"),
+     *             @OA\Property(property="cover_image", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Manufacturer created successfully", @OA\JsonContent(ref="#/components/schemas/Manufacturer")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(ManufacturerRequest $request)
     {
@@ -58,10 +117,17 @@ class ManufacturerController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $slug
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/manufacturers/{slug}",
+     *     operationId="getManufacturer",
+     *     tags={"Manufacturers"},
+     *     summary="Get a single manufacturer",
+     *     description="Retrieve detailed manufacturer information by slug or ID.",
+     *     @OA\Parameter(name="slug", in="path", description="Manufacturer slug or ID", required=true, @OA\Schema(type="string", example="apple")),
+     *     @OA\Parameter(name="language", in="query", description="Language code", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(response=200, description="Manufacturer retrieved successfully", @OA\JsonContent(ref="#/components/schemas/Manufacturer")),
+     *     @OA\Response(response=404, description="Manufacturer not found")
+     * )
      */
     public function show(Request $request, $slug)
     {
@@ -97,11 +163,18 @@ class ManufacturerController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param ManufacturerRequest $request
-     * @param int $id
-     * @return array
+     * @OA\Put(
+     *     path="/manufacturers/{id}",
+     *     operationId="updateManufacturer",
+     *     tags={"Manufacturers"},
+     *     summary="Update a manufacturer",
+     *     description="Update manufacturer details. Requires permissions for the associated shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Manufacturer ID", required=true, @OA\Schema(type="integer", example=1)),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/Manufacturer")),
+     *     @OA\Response(response=200, description="Manufacturer updated successfully", @OA\JsonContent(ref="#/components/schemas/Manufacturer")),
+     *     @OA\Response(response=404, description="Manufacturer not found")
+     * )
      */
     public function update(ManufacturerRequest $request, $id)
     {
@@ -127,10 +200,19 @@ class ManufacturerController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/manufacturers/{id}",
+     *     operationId="deleteManufacturer",
+     *     tags={"Manufacturers"},
+     *     summary="Delete a manufacturer",
+     *     description="Delete a manufacturer. Requires shop permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Manufacturer ID to delete", required=true, @OA\Schema(type="integer", example=1)),
+     *     @OA\Response(response=200, description="Manufacturer deleted successfully", @OA\JsonContent(ref="#/components/schemas/Manufacturer")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Manufacturer not found")
+     * )
      */
     public function destroy($id, Request $request)
     {
@@ -152,6 +234,18 @@ class ManufacturerController extends CoreController
         throw new MarvelException(NOT_AUTHORIZED);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/top-manufacturers",
+     *     operationId="getTopManufacturers",
+     *     tags={"Manufacturers"},
+     *     summary="Get top manufacturers",
+     *     description="Retrieve list of manufacturers with the most products.",
+     *     @OA\Parameter(name="language", in="query", description="Language code", required=false, @OA\Schema(type="string", default="en", example="en")),
+     *     @OA\Parameter(name="limit", in="query", description="Number of results", required=false, @OA\Schema(type="integer", default=10, example=10)),
+     *     @OA\Response(response=200, description="Top manufacturers retrieved successfully", @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Manufacturer")))
+     * )
+     */
     public function topManufacturer(Request $request)
     {
         $limit = $request->limit ? $request->limit : 10;

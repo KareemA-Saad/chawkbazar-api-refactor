@@ -76,6 +76,29 @@ use OpenApi\Annotations as OA;
  *         example={"email": {"The email field is required."}, "password": {"The password field is required."}}
  *     )
  * )
+ *
+ * @OA\Schema(
+ *     schema="CmsPage",
+ *     type="object",
+ *     description="CMS Page details",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="title", type="string", example="Privacy Policy"),
+ *     @OA\Property(property="slug", type="string", example="privacy-policy"),
+ *     @OA\Property(property="content", type="array", @OA\Items(type="object"), description="List of content blocks"),
+ *     @OA\Property(property="meta", type="object", nullable=true, description="SEO metadata"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PaginatedCmsPages",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/CmsPage")),
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="per_page", type="integer", example=10),
+ *     @OA\Property(property="total", type="integer", example=5),
+ *     @OA\Property(property="last_page", type="integer", example=1)
+ * )
  */
 class CmsPageController extends CoreController
 {
@@ -85,7 +108,15 @@ class CmsPageController extends CoreController
     }
 
     /**
-     * Publicly list CMS pages with pagination.
+     * @OA\Get(
+     *     path="/cms-pages",
+     *     operationId="listCmsPages",
+     *     tags={"CMS Pages"},
+     *     summary="List all CMS pages",
+     *     description="Retrieve a paginated list of CMS pages like Privacy Policy, Terms, etc.",
+     *     @OA\Parameter(name="limit", in="query", @OA\Schema(type="integer", default=10)),
+     *     @OA\Response(response=200, description="CMS pages retrieved successfully", @OA\JsonContent(ref="#/components/schemas/PaginatedCmsPages"))
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -98,7 +129,16 @@ class CmsPageController extends CoreController
     }
 
     /**
-     * Publicly fetch a page by slug (legacy support).
+     * @OA\Get(
+     *     path="/cms-pages/{slug}",
+     *     operationId="getCmsPageBySlug",
+     *     tags={"CMS Pages"},
+     *     summary="Get a CMS page by slug",
+     *     description="Retrieve detailed CMS page information by slug.",
+     *     @OA\Parameter(name="slug", in="path", required=true, @OA\Schema(type="string", example="privacy-policy")),
+     *     @OA\Response(response=200, description="CMS page retrieved successfully", @OA\JsonContent(ref="#/components/schemas/CmsPage")),
+     *     @OA\Response(response=404, description="Page not found")
+     * )
      */
     public function show(string $slug): CmsPageResource
     {
@@ -158,7 +198,28 @@ class CmsPageController extends CoreController
     }
 
     /**
-     * Create a page (Editor or higher).
+     * @OA\Post(
+     *     path="/cms-pages",
+     *     operationId="createCmsPage",
+     *     tags={"CMS Pages"},
+     *     summary="Create a new CMS page",
+     *     description="Create a new CMS page. Requires EDITOR or SUPER_ADMIN permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"title", "slug"},
+     *             @OA\Property(property="title", type="string", example="Privacy Policy"),
+     *             @OA\Property(property="slug", type="string", example="privacy-policy"),
+     *             @OA\Property(property="content", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="meta", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="CMS page created successfully", @OA\JsonContent(ref="#/components/schemas/CmsPage")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(CmsPageRequest $request): JsonResponse
     {
@@ -240,7 +301,18 @@ class CmsPageController extends CoreController
     }
 
     /**
-     * Update a page (Editor or higher).
+     * @OA\Put(
+     *     path="/cms-pages/{id}",
+     *     operationId="updateCmsPage",
+     *     tags={"CMS Pages"},
+     *     summary="Update a CMS page",
+     *     description="Update CMS page details. Requires EDITOR or SUPER_ADMIN permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/CmsPage")),
+     *     @OA\Response(response=200, description="CMS page updated successfully", @OA\JsonContent(ref="#/components/schemas/CmsPage")),
+     *     @OA\Response(response=404, description="Page not found")
+     * )
      */
     public function update(CmsPageRequest $request, int $id): CmsPageResource
     {
@@ -250,7 +322,17 @@ class CmsPageController extends CoreController
     }
 
     /**
-     * Delete a page (Editor or higher).
+     * @OA\Delete(
+     *     path="/cms-pages/{id}",
+     *     operationId="deleteCmsPage",
+     *     tags={"CMS Pages"},
+     *     summary="Delete a CMS page",
+     *     description="Delete a CMS page. Requires EDITOR or SUPER_ADMIN permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="CMS page deleted successfully", @OA\JsonContent(ref="#/components/schemas/MessageResponse")),
+     *     @OA\Response(response=404, description="Page not found")
+     * )
      */
     public function destroy(Request $request, int $id): JsonResponse
     {

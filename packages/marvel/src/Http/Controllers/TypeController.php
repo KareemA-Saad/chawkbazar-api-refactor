@@ -13,6 +13,25 @@ use Marvel\Http\Requests\TypeRequest;
 use Marvel\Http\Resources\TypeResource;
 use Prettus\Validator\Exceptions\ValidatorException;
 
+/**
+ * @OA\Tag(name="Types", description="Product types/collections management - e.g., Grocery, Bakery, Furniture")
+ *
+ * @OA\Schema(
+ *     schema="Type",
+ *     type="object",
+ *     description="Product type details",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Grocery"),
+ *     @OA\Property(property="slug", type="string", example="grocery"),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="translated_languages", type="array", @OA\Items(type="string"), example={"en"}),
+ *     @OA\Property(property="icon", type="string", nullable=true, example="FruitsVegetable"),
+ *     @OA\Property(property="images", type="array", @OA\Items(type="object"), nullable=true),
+ *     @OA\Property(property="banners", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="promotional_sliders", type="array", @OA\Items(type="object"), nullable=true),
+ *     @OA\Property(property="settings", type="object", @OA\Property(property="isFullWidth", type="boolean", example=true), @OA\Property(property="layoutType", type="string", example="classic"))
+ * )
+ */
 class TypeController extends CoreController
 {
     public $repository;
@@ -24,27 +43,51 @@ class TypeController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Type[]
+     * @OA\Get(
+     *     path="/types",
+     *     operationId="listTypes",
+     *     tags={"Types"},
+     *     summary="List all product types",
+     *     description="Retrieve all product types/collections like Grocery, Bakery, Clothing, etc.",
+     *     @OA\Parameter(name="language", in="query", description="Language code", required=false, @OA\Schema(type="string", default="en", example="en")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", required=false, @OA\Schema(type="integer", default=1000, example=15)),
+     *     @OA\Response(response=200, description="Types retrieved successfully", @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Type")))
+     * )
      */
     public function index(Request $request)
     {
         $language = $request->language ?? DEFAULT_LANGUAGE;
 
         $limit = isset($request->limit) ? $request->limit : 10000;
-        $types =  $this->repository->where('language', $language)->paginate($limit);
+        $types = $this->repository->where('language', $language)->paginate($limit);
         // $types = $this->repository->where('language', $language)->get();
         return TypeResource::collection($types);
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param TypeRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/types",
+     *     operationId="createType",
+     *     tags={"Types"},
+     *     summary="Create a new product type",
+     *     description="Create a new type. Requires admin permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "settings"},
+     *             @OA\Property(property="name", type="string", example="Bakery"),
+     *             @OA\Property(property="icon", type="string", example="BakeryIcon"),
+     *             @OA\Property(property="settings", type="object", @OA\Property(property="isFullWidth", type="boolean", example=true), @OA\Property(property="layoutType", type="string", example="classic")),
+     *             @OA\Property(property="banners", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="promotional_sliders", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Type created successfully", @OA\JsonContent(ref="#/components/schemas/Type")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(TypeRequest $request)
     {
@@ -56,10 +99,17 @@ class TypeController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $slug
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/types/{slug}",
+     *     operationId="getType",
+     *     tags={"Types"},
+     *     summary="Get a single product type",
+     *     description="Retrieve detailed information about a type by slug or ID.",
+     *     @OA\Parameter(name="slug", in="path", description="Type slug or ID", required=true, @OA\Schema(type="string", example="grocery")),
+     *     @OA\Parameter(name="language", in="query", description="Language code", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(response=200, description="Type retrieved successfully", @OA\JsonContent(ref="#/components/schemas/Type")),
+     *     @OA\Response(response=404, description="Type not found")
+     * )
      */
     public function show(Request $request, $params)
     {
@@ -79,11 +129,18 @@ class TypeController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param TypeRequest $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/types/{id}",
+     *     operationId="updateType",
+     *     tags={"Types"},
+     *     summary="Update a product type",
+     *     description="Update type details. Requires admin permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Type ID", required=true, @OA\Schema(type="integer", example=1)),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(ref="#/components/schemas/Type")),
+     *     @OA\Response(response=200, description="Type updated successfully", @OA\JsonContent(ref="#/components/schemas/Type")),
+     *     @OA\Response(response=404, description="Type not found")
+     * )
      */
     public function update(TypeRequest $request, $id)
     {
@@ -102,10 +159,17 @@ class TypeController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/types/{id}",
+     *     operationId="deleteType",
+     *     tags={"Types"},
+     *     summary="Delete a product type",
+     *     description="Delete a product type. Requires admin permissions.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", description="Type ID to delete", required=true, @OA\Schema(type="integer", example=1)),
+     *     @OA\Response(response=200, description="Type deleted successfully", @OA\JsonContent(type="boolean", example=true)),
+     *     @OA\Response(response=404, description="Type not found")
+     * )
      */
     public function destroy($id)
     {

@@ -23,7 +23,7 @@ class Coupon extends Model
     protected $appends = ['is_valid', 'translated_languages'];
 
     protected $casts = [
-        'image'   => 'json',
+        'image' => 'json',
     ];
 
     protected static function boot()
@@ -44,13 +44,23 @@ class Coupon extends Model
     }
 
     /**
+     * Get all usage records for this coupon
+     * 
+     * @return HasMany
+     */
+    public function usages(): HasMany
+    {
+        return $this->hasMany(CouponUsage::class);
+    }
+
+    /**
      * @return bool
      */
     public function getIsValidAttribute()
     {
         return Carbon::now()->between($this->active_from, $this->expire_at);
     }
-        /**
+    /**
      * @return BelongsTo
      */
     public function user(): BelongsTo
