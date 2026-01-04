@@ -237,10 +237,13 @@ class UserController extends CoreController
         try {
             $user = $request->user();
             if (isset($user)) {
-                return $this->repository
-                    ->with(['profile', 'wallet', 'address', 'shops.balance', 'managed_shop.balance'])
+                $user = $this->repository
+                    ->with(['profile', 'wallet', 'address', 'shops.balance', 'managed_shop.balance', 'roles'])
                     ->find($user->id)
                     ->loadLastOrder();
+                $user->role = $user->roles->first()?->name;
+                $user->unsetRelation('roles');
+                return $user;
             }
             throw new AuthorizationException(NOT_AUTHORIZED);
         } catch (MarvelException $e) {
