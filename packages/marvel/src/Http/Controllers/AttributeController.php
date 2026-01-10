@@ -16,6 +16,31 @@ use Marvel\Database\Repositories\AttributeRepository;
 use Marvel\Http\Resources\AttributeResource;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Attributes", description="Product attributes management [STORE_OWNER, SUPER_ADMIN]")
+ *
+ * @OA\Schema(
+ *     schema="Attribute",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Size"),
+ *     @OA\Property(property="slug", type="string", example="size"),
+ *     @OA\Property(property="shop_id", type="integer", example=10),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="values", type="array", @OA\Items(ref="#/components/schemas/AttributeValue")),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="AttributeValue",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=5),
+ *     @OA\Property(property="attribute_id", type="integer", example=1),
+ *     @OA\Property(property="value", type="string", example="XL"),
+ *     @OA\Property(property="meta", type="string", nullable=true)
+ * )
+ */
 class AttributeController extends CoreController
 {
     public $repository;
@@ -27,10 +52,21 @@ class AttributeController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Type[]
+     * @OA\Get(
+     *     path="/attributes",
+     *     operationId="getAttributes",
+     *     tags={"Attributes"},
+     *     summary="List Attributes",
+     *     description="List attributes. customizable by Shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="shop_id", in="query", description="Filter by Shop ID", @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Attributes retrieved",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Attribute"))
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request)
     {
@@ -40,11 +76,27 @@ class AttributeController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param AttributeRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/attributes",
+     *     operationId="createAttribute",
+     *     tags={"Attributes"},
+     *     summary="Create Attribute",
+     *     description="Create a new attribute. Requires STORE_OWNER permission for the shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "shop_id"},
+     *             @OA\Property(property="name", type="string", example="Color"),
+     *             @OA\Property(property="shop_id", type="integer", example=10),
+     *             @OA\Property(property="language", type="string", example="en"),
+     *             @OA\Property(property="values", type="array", @OA\Items(type="object", @OA\Property(property="value", type="string"), @OA\Property(property="meta", type="string")))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Attribute created", @OA\JsonContent(ref="#/components/schemas/Attribute")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function store(AttributeRequest $request)
     {
@@ -59,10 +111,17 @@ class AttributeController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/attributes/{id}",
+     *     operationId="getAttribute",
+     *     tags={"Attributes"},
+     *     summary="Get Attribute",
+     *     description="Get attribute details by ID or Slug",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Attribute ID or Slug", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="Attribute details", @OA\JsonContent(ref="#/components/schemas/Attribute")),
+     *     @OA\Response(response=404, description="Attribute not found")
+     * )
      */
     public function show(Request $request, $params)
     {
@@ -82,11 +141,26 @@ class AttributeController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param AttributeRequest $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/attributes/{id}",
+     *     operationId="updateAttribute",
+     *     tags={"Attributes"},
+     *     summary="Update Attribute",
+     *     description="Update existing attribute. Requires permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Attribute ID", @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="Updated Size"),
+     *             @OA\Property(property="shop_id", type="integer"),
+     *             @OA\Property(property="values", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Attribute updated", @OA\JsonContent(ref="#/components/schemas/Attribute")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function update(AttributeRequest $request, $id)
     {
@@ -113,10 +187,18 @@ class AttributeController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/attributes/{id}",
+     *     operationId="deleteAttribute",
+     *     tags={"Attributes"},
+     *     summary="Delete Attribute",
+     *     description="Delete an attribute. Requires permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Attribute ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Attribute deleted"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function destroy(Request $request, $id)
     {
@@ -146,11 +228,11 @@ class AttributeController extends CoreController
     {
         $filename = 'attributes-for-shop-id-' . $shop_id . '.csv';
         $headers = [
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
-            'Content-type'        => 'text/csv',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Content-type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename=' . $filename,
-            'Expires'             => '0',
-            'Pragma'              => 'public'
+            'Expires' => '0',
+            'Pragma' => 'public'
         ];
 
         $list = $this->repository->where('shop_id', $shop_id)->with(['values'])->get()->toArray();

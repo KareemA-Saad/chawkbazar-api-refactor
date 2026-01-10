@@ -183,10 +183,24 @@ class FlashSaleVendorRequestController extends CoreController
     }
 
     /**
-     * approveFlashSaleProductsRequest
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Post(
+     *     path="/approve-flash-sale-requested-products",
+     *     operationId="approveFlashSaleProducts",
+     *     tags={"Content Moderation"},
+     *     summary="Approve Flash Sale Request",
+     *     description="Approve a vendor's flash sale product request. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Flash sale request ID to approve")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Flash sale request approved"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
      */
     public function approveFlashSaleProductsRequest(Request $request)
     {
@@ -202,10 +216,24 @@ class FlashSaleVendorRequestController extends CoreController
     }
 
     /**
-     * disapproveFlashSaleProductsRequest
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Post(
+     *     path="/disapprove-flash-sale-requested-products",
+     *     operationId="disapproveFlashSaleProducts",
+     *     tags={"Content Moderation"},
+     *     summary="Disapprove Flash Sale Request",
+     *     description="Reject a vendor's flash sale product request. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Flash sale request ID to reject")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Flash sale request rejected"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
      */
     public function disapproveFlashSaleProductsRequest(Request $request)
     {

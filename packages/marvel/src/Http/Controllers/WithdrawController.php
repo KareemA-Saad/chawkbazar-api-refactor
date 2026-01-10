@@ -19,6 +19,24 @@ use Prettus\Validator\Exceptions\ValidatorException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Withdrawal Management", description="Vendor payout requests and approval [SUPER_ADMIN, STORE_OWNER]")
+ *
+ * @OA\Schema(
+ *     schema="Withdraw",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="amount", type="number", format="float", example=500.00),
+ *     @OA\Property(property="shop_id", type="integer", example=10),
+ *     @OA\Property(property="payment_method", type="string", example="bank_transfer"),
+ *     @OA\Property(property="details", type="string", example="Bank Acct: 12345678"),
+ *     @OA\Property(property="note", type="string", nullable=true, example="Monthly payout"),
+ *     @OA\Property(property="status", type="string", enum={"approved", "pending", "rejected", "processing", "on_hold"}, example="pending"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="shop", ref="#/components/schemas/Shop")
+ * )
+ */
 class WithdrawController extends CoreController
 {
     public $repository;
@@ -27,11 +45,29 @@ class WithdrawController extends CoreController
     {
         $this->repository = $repository;
     }
+
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Withdraw[]
+     * @OA\Get(
+     *     path="/withdraws",
+     *     operationId="getWithdraws",
+     *     tags={"Withdrawal Management"},
+     *     summary="List withdrawals",
+     *     description="List withdrawal requests. Store Owners see their own. Super Admins see all.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="shop_id", in="query", description="Filter by Shop ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="page", in="query", description="Page number", @OA\Schema(type="integer", default=1)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Withdrawals retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Withdraw")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function index(Request $request)
     {
@@ -66,11 +102,33 @@ class WithdrawController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param WithdrawRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/withdraws",
+     *     operationId="createWithdraw",
+     *     tags={"Withdrawal Management"},
+     *     summary="Request a withdrawal",
+     *     description="Create a new withdrawal request for a shop. Requires STORE_OWNER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"amount", "shop_id", "payment_method"},
+     *             @OA\Property(property="amount", type="number", format="float", example=500.00),
+     *             @OA\Property(property="shop_id", type="integer", example=10),
+     *             @OA\Property(property="payment_method", type="string", example="Bank Transfer"),
+     *             @OA\Property(property="details", type="string", example="Account info..."),
+     *             @OA\Property(property="note", type="string", example="Monthly payout")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Withdrawal requested successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Withdraw")
+     *     ),
+     *     @OA\Response(response=400, description="Bad Request (Insufficient balance or invalid shop)"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function store(WithdrawRequest $request)
     {
@@ -98,10 +156,23 @@ class WithdrawController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/withdraws/{id}",
+     *     operationId="getWithdraw",
+     *     tags={"Withdrawal Management"},
+     *     summary="Get withdrawal details",
+     *     description="Get details of a specific withdrawal. Requires STORE_OWNER or SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Withdraw ID", @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Withdraw details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/Withdraw")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Withdraw not found")
+     * )
      */
     public function show(Request $request, $id)
     {
@@ -136,10 +207,19 @@ class WithdrawController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/withdraws/{id}",
+     *     operationId="deleteWithdraw",
+     *     tags={"Withdrawal Management"},
+     *     summary="Delete Withdrawal Request",
+     *     description="Delete a withdrawal request. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Withdraw ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Withdraw deleted successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Withdraw not found")
+     * )
      */
     public function destroy(Request $request, $id)
     {
@@ -153,6 +233,28 @@ class WithdrawController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/approve-withdraw",
+     *     operationId="approveWithdraw",
+     *     tags={"Withdrawal Management"},
+     *     summary="Approve/Reject Withdrawal",
+     *     description="Change withdrawal request status (approved, rejected, on_hold, processing). Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id", "status"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Withdraw ID"),
+     *             @OA\Property(property="status", type="string", enum={"approved", "rejected", "on_hold", "processing", "pending"}, example="approved")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Withdrawal status updated"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Withdraw not found")
+     * )
+     */
     public function approveWithdraw(Request $request)
     {
         try {

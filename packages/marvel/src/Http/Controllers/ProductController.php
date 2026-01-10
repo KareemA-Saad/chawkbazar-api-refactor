@@ -991,10 +991,31 @@ class ProductController extends CoreController
 
 
     /**
-     * calculateRentalPrice
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/products/calculate-rental-price",
+     *     operationId="calculateRentalPrice",
+     *     tags={"Products"},
+     *     summary="Calculate rental price for a product",
+     *     description="Calculates the total rental price based on duration, quantity, and selected features. Also checks availability for the given date range.",
+     *     @OA\Parameter(name="product_id", in="query", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="variation_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="from", in="query", required=true, @OA\Schema(type="string", format="date", example="2023-12-01")),
+     *     @OA\Parameter(name="to", in="query", required=true, @OA\Schema(type="string", format="date", example="2023-12-05")),
+     *     @OA\Parameter(name="quantity", in="query", required=false, @OA\Schema(type="integer", default=1)),
+     *     @OA\Parameter(name="persons", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="dropoff_location_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="pickup_location_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Calculated rental price",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="price", type="number", format="float", example=150.00),
+     *             @OA\Property(property="total", type="number", format="float", example=150.00)
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Invalid product or date range"),
+     *     @OA\Response(response=404, description="Product not found")
+     * )
      */
     public function calculateRentalPrice(Request $request)
     {
@@ -1070,10 +1091,26 @@ class ProductController extends CoreController
 
 
     /**
-     * draftedProducts
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/draft-products",
+     *     operationId="getDraftedProducts",
+     *     tags={"Products"},
+     *     summary="List products in draft status",
+     *     description="Returns a paginated list of drafted products belonging to the user's shop(s).",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="shop_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Paginated list of drafted products",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Product")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function draftedProducts(Request $request)
     {
@@ -1122,10 +1159,26 @@ class ProductController extends CoreController
     }
 
     /**
-     * productStock
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/product-stock",
+     *     operationId="getProductStock",
+     *     tags={"Products"},
+     *     summary="List products with low stock",
+     *     description="Returns a paginated list of products with inventory less than 10 belonging to the user's shop(s).",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="shop_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Paginated list of products with low stock",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Product")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function productStock(Request $request)
     {

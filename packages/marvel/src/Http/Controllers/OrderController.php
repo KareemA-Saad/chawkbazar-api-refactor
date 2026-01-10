@@ -33,6 +33,47 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 
+/**
+ * @OA\Tag(name="Orders", description="Order management endpoints [ALL ROLES]")
+ *
+ * @OA\Schema(
+ *     schema="Order",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="tracking_number", type="string", example="ORD-123456"),
+ *     @OA\Property(property="customer_id", type="integer", example=10),
+ *     @OA\Property(property="customer_contact", type="string", example="+123456789"),
+ *     @OA\Property(property="status", type="string", example="order-pending"),
+ *     @OA\Property(property="amount", type="number", format="float", example=100.00),
+ *     @OA\Property(property="sales_tax", type="number", format="float", example=5.00),
+ *     @OA\Property(property="paid_total", type="number", format="float", example=105.00),
+ *     @OA\Property(property="total", type="number", format="float", example=105.00),
+ *     @OA\Property(property="coupon_id", type="integer", nullable=true),
+ *     @OA\Property(property="shop_id", type="integer", nullable=true, description="If generic order, this is null. If sub-order, contains shop ID."),
+ *     @OA\Property(property="discount", type="number", format="float", example=0.00),
+ *     @OA\Property(property="payment_gateway", type="string", example="CASH_ON_DELIVERY"),
+ *     @OA\Property(property="shipping_address", type="object"),
+ *     @OA\Property(property="billing_address", type="object"),
+ *     @OA\Property(property="logistics_provider", type="integer", nullable=true),
+ *     @OA\Property(property="delivery_fee", type="number", format="float", example=10.00),
+ *     @OA\Property(property="delivery_time", type="string", example="Express"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="products", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="children", type="array", @OA\Items(ref="#/components/schemas/Order"))
+ * )
+ *
+ * @OA\Schema(
+ *     schema="PaginatedOrders",
+ *     type="object",
+ *     @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Order")),
+ *     @OA\Property(property="current_page", type="integer", example=1),
+ *     @OA\Property(property="first_page_url", type="string"),
+ *     @OA\Property(property="last_page", type="integer", example=10),
+ *     @OA\Property(property="per_page", type="integer", example=15),
+ *     @OA\Property(property="total", type="integer", example=150)
+ * )
+ */
 class OrderController extends CoreController
 {
     use WalletsTrait,
@@ -51,10 +92,49 @@ class OrderController extends CoreController
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Order[]
+     * @OA\Get(
+     *     path="/orders",
+     *     operationId="getOrders",
+     *     tags={"Orders"},
+     *     summary="List all orders",
+     *     description="Retrieve a paginated list of orders. Customers see their own orders. Store Owners/Staff see orders for their shop. Super Admins see all.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of orders per page",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10, example=15)
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Page number",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=1, example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="shop_id",
+     *         in="query",
+     *         description="Filter by Shop ID (for Store Owners/Staff)",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=2)
+     *     ),
+     *     @OA\Parameter(
+     *         name="tracking_number",
+     *         in="query",
+     *         description="Search by tracking number",
+     *         required=false,
+     *         @OA\Schema(type="string", example="ORD-123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Orders retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/PaginatedOrders")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function index(Request $request)
     {
@@ -121,11 +201,46 @@ class OrderController extends CoreController
 
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param OrderCreateRequest $request
-     * @return LengthAwarePaginator|\Illuminate\Support\Collection|mixed
-     * @throws MarvelException
+     * @OA\Post(
+     *     path="/orders",
+     *     operationId="createOrder",
+     *     tags={"Orders"},
+     *     summary="Create a new order",
+     *     description="Create specific order with products. Primarily for customers.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"products", "amount", "total", "paid_total", "payment_gateway"},
+     *             @OA\Property(property="customer_id", type="integer", example=1),
+     *             @OA\Property(
+     *                 property="products",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     @OA\Property(property="product_id", type="integer", example=1),
+     *                     @OA\Property(property="order_quantity", type="integer", example=2),
+     *                     @OA\Property(property="unit_price", type="number", format="float", example=50.00),
+     *                     @OA\Property(property="subtotal", type="number", format="float", example=100.00)
+     *                 )
+     *             ),
+     *             @OA\Property(property="amount", type="number", format="float", example=100.00),
+     *             @OA\Property(property="sales_tax", type="number", format="float", example=5.00),
+     *             @OA\Property(property="delivery_fee", type="number", format="float", example=10.00),
+     *             @OA\Property(property="total", type="number", format="float", example=115.00),
+     *             @OA\Property(property="paid_total", type="number", format="float", example=115.00),
+     *             @OA\Property(property="payment_gateway", type="string", enum={"CASH_ON_DELIVERY", "STRIPE", "PAYPAL"}, example="CASH_ON_DELIVERY"),
+     *             @OA\Property(property="billing_address", type="object"),
+     *             @OA\Property(property="shipping_address", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Order created successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(OrderCreateRequest $request)
     {
@@ -135,19 +250,36 @@ class OrderController extends CoreController
             //     throw new HttpException(400, PLEASE_ENABLE_PAYMENT_OPTION_FROM_THE_SETTINGS);
             // }
 
-            return DB::transaction(fn () => $this->repository->storeOrder($request, $this->settings));
+            return DB::transaction(fn() => $this->repository->storeOrder($request, $this->settings));
         } catch (MarvelException $th) {
             throw new MarvelException(SOMETHING_WENT_WRONG, $th->getMessage());
         }
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param Request $request
-     * @param $params
-     * @return JsonResponse
-     * @throws MarvelException
+     * @OA\Get(
+     *     path="/orders/{id}",
+     *     operationId="getOrder",
+     *     tags={"Orders"},
+     *     summary="Get a single order",
+     *     description="Retrieve order details by ID or Tracking Number. Access restricted to the Customer who owns it, or Store Owner/Staff of the shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Order ID or Tracking Number",
+     *         @OA\Schema(type="string", example="1")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Order details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - not authorized to view this order"),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
      */
     public function show(Request $request, $params)
     {
@@ -185,7 +317,9 @@ class OrderController extends CoreController
         // Create Intent
         if (
             !in_array($order->payment_gateway, [
-                PaymentGatewayType::CASH, PaymentGatewayType::CASH_ON_DELIVERY, PaymentGatewayType::FULL_WALLET_PAYMENT
+                PaymentGatewayType::CASH,
+                PaymentGatewayType::CASH_ON_DELIVERY,
+                PaymentGatewayType::FULL_WALLET_PAYMENT
             ])
         ) {
             // $order['payment_intent'] = $this->processPaymentIntent($request, $this->settings);
@@ -215,6 +349,28 @@ class OrderController extends CoreController
      * @param mixed $tracking_number
      * @return void
      */
+    /**
+     * @OA\Get(
+     *     path="/orders/tracking-number/{tracking_number}",
+     *     operationId="getOrderByTracking",
+     *     tags={"Orders"},
+     *     summary="Track order by tracking number",
+     *     description="Retrieve order details using tracking number. Publicly accessible for valid tracking numbers.",
+     *     @OA\Parameter(
+     *         name="tracking_number",
+     *         in="path",
+     *         required=true,
+     *         description="Order tracking number",
+     *         @OA\Schema(type="string", example="ORD-123456")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Order details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
+     */
     public function findByTrackingNumber(Request $request, $tracking_number)
     {
         $user = $request->user() ?? null;
@@ -236,11 +392,36 @@ class OrderController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param OrderUpdateRequest $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/orders/{id}",
+     *     operationId="updateOrder",
+     *     tags={"Orders"},
+     *     summary="Update order status",
+     *     description="Update the status of an order. Requires STORE_OWNER or STAFF permission for the related shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Order ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *             @OA\Property(property="status", type="string", enum={"order-pending", "order-processing", "order-completed", "order-cancelled", "order-failed", "order-at-local-facility", "order-out-for-delivery"}, example="order-processing")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Order updated successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/Order")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
      */
     public function update(OrderUpdateRequest $request, $id)
     {
@@ -258,10 +439,25 @@ class OrderController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/orders/{id}",
+     *     operationId="deleteOrder",
+     *     tags={"Orders"},
+     *     summary="Delete an order",
+     *     description="Delete an order. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="Order ID",
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Response(response=200, description="Order deleted successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
      */
     public function destroy($id)
     {
@@ -419,6 +615,28 @@ class OrderController extends CoreController
      * @return void
      * @throws Exception
      */
+    /**
+     * @OA\Post(
+     *     path="/orders/payment",
+     *     operationId="submitOrderPayment",
+     *     tags={"Orders"},
+     *     summary="Submit order payment",
+     *     description="Process payment for an existing order",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"tracking_number"},
+     *             @OA\Property(property="tracking_number", type="string", example="ORD-123456"),
+     *             @OA\Property(property="nonce", type="string", description="Payment nonce/token from gateway"),
+     *             @OA\Property(property="token", type="string", description="Payment token")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Payment processed successfully"),
+     *     @OA\Response(response=400, description="Payment failed"),
+     *     @OA\Response(response=404, description="Order not found")
+     * )
+     */
     public function submitPayment(Request $request): void
     {
         $tracking_number = $request->tracking_number ?? null;
@@ -427,7 +645,8 @@ class OrderController extends CoreController
                 ->findOneByFieldOrFail('tracking_number', $tracking_number);
 
             $isFinal = $this->checkOrderStatusIsFinal($order);
-            if ($isFinal) return;
+            if ($isFinal)
+                return;
 
             switch ($order->payment_gateway) {
 

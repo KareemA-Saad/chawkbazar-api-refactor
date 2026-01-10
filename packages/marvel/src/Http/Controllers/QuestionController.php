@@ -16,6 +16,24 @@ use Marvel\Http\Requests\QuestionCreateRequest;
 use Marvel\Http\Requests\QuestionUpdateRequest;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Questions", description="Product Q&A [STORE_OWNER, CUSTOMER]")
+ *
+ * @OA\Schema(
+ *     schema="Question",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="question", type="string", example="Does this come in blue?"),
+ *     @OA\Property(property="answer", type="string", nullable=true, example="Yes, it does."),
+ *     @OA\Property(property="user_id", type="integer", example=1),
+ *     @OA\Property(property="product_id", type="integer", example=10),
+ *     @OA\Property(property="shop_id", type="integer", example=2),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="product", ref="#/components/schemas/Product"),
+ *     @OA\Property(property="user", ref="#/components/schemas/User")
+ * )
+ */
 class QuestionController extends CoreController
 {
     public $repository;
@@ -27,10 +45,24 @@ class QuestionController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Question[]
+     * @OA\Get(
+     *     path="/questions",
+     *     operationId="getQuestions",
+     *     tags={"Questions"},
+     *     summary="List Questions",
+     *     description="List questions. Filter by product_id to see questions for a product.",
+     *     @OA\Parameter(name="product_id", in="query", description="Filter by Product ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="page", in="query", description="Page number", @OA\Schema(type="integer", default=1)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Questions retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Question")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -53,19 +85,34 @@ class QuestionController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param  QuestionCreateRequest  $request
-     * @return mixed
-     * @throws Exception
+     * @OA\Post(
+     *     path="/questions",
+     *     operationId="createQuestion",
+     *     tags={"Questions"},
+     *     summary="Ask a Question",
+     *     description="Submit a question for a product. Requires CUSTOMER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"question", "product_id", "shop_id"},
+     *             @OA\Property(property="question", type="string", example="Is this waterproof?"),
+     *             @OA\Property(property="product_id", type="integer", example=10),
+     *             @OA\Property(property="shop_id", type="integer", example=2)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Question submitted", @OA\JsonContent(ref="#/components/schemas/Question")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=400, description="Limit exceeded")
+     * )
      */
     public function store(QuestionCreateRequest $request): Question
     {
         try {
             $productQuestionCount = $this->repository->where([
                 'product_id' => $request['product_id'],
-                'user_id'    => $request->user()->id,
-                'shop_id'    => $request['shop_id']
+                'user_id' => $request->user()->id,
+                'shop_id' => $request['shop_id']
             ])->count();
 
             $settings = Settings::getData();
@@ -82,10 +129,16 @@ class QuestionController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/questions/{id}",
+     *     operationId="getQuestion",
+     *     tags={"Questions"},
+     *     summary="Get Question Details",
+     *     description="Get a single question details",
+     *     @OA\Parameter(name="id", in="path", required=true, description="Question ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Question details", @OA\JsonContent(ref="#/components/schemas/Question")),
+     *     @OA\Response(response=404, description="Not found")
+     * )
      */
     public function show($id)
     {
@@ -96,6 +149,28 @@ class QuestionController extends CoreController
         }
     }
 
+    /**
+     * @OA\Put(
+     *     path="/questions/{id}",
+     *     operationId="updateQuestion",
+     *     tags={"Questions"},
+     *     summary="Answer a Question",
+     *     description="Update question (usually to add an answer). Requires STORE_OWNER permission for the shop.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Question ID", @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"answer", "shop_id"},
+     *             @OA\Property(property="answer", type="string", example="Yes, it is waterproof."),
+     *             @OA\Property(property="shop_id", type="integer", example=2)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Question updated", @OA\JsonContent(ref="#/components/schemas/Question")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     public function update(QuestionUpdateRequest $request, $id)
     {
         $request->id = $id;
@@ -116,10 +191,18 @@ class QuestionController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/questions/{id}",
+     *     operationId="deleteQuestion",
+     *     tags={"Questions"},
+     *     summary="Delete a Question",
+     *     description="Delete a question. Requires permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Question ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Question deleted"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function destroy($id)
     {
@@ -131,10 +214,25 @@ class QuestionController extends CoreController
     }
 
     /**
-     * Display a listing of the resource for authenticated user.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/my-questions",
+     *     operationId="getMyQuestions",
+     *     tags={"Questions"},
+     *     summary="My Questions",
+     *     description="List questions asked by the authenticated user.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="page", in="query", description="Page number", @OA\Schema(type="integer", default=1)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="My questions retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Question")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function myQuestions(Request $request)
     {

@@ -18,6 +18,9 @@ use Marvel\Http\Requests\AbusiveReportCreateRequest;
 use Prettus\Validator\Exceptions\ValidatorException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Wishlist", description="User Wishlist management")
+ */
 class WishlistController extends CoreController
 {
     public $repository;
@@ -29,10 +32,25 @@ class WishlistController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|AbusiveReport[]
+     * @OA\Get(
+     *     path="/wishlists",
+     *     operationId="getWishlists",
+     *     tags={"Wishlist"},
+     *     summary="List Wishlist Products",
+     *     description="Get a paginated list of products in the current user's wishlist.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Wishlist products retrieved",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Product")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request)
     {
@@ -42,11 +60,23 @@ class WishlistController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param AbusiveReportCreateRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/wishlists",
+     *     operationId="addToWishlist",
+     *     tags={"Wishlist"},
+     *     summary="Add Product to Wishlist",
+     *     description="Add a single product to the current user's wishlist.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"product_id"},
+     *             @OA\Property(property="product_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Product added successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function store(WishlistCreateRequest $request)
     {
@@ -58,11 +88,23 @@ class WishlistController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param AbusiveReportCreateRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/wishlists/toggle",
+     *     operationId="toggleWishlist",
+     *     tags={"Wishlist"},
+     *     summary="Toggle Wishlist Item",
+     *     description="Add or remove a product from the current user's wishlist.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"product_id"},
+     *             @OA\Property(property="product_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Wishlist toggled successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function toggle(WishlistCreateRequest $request)
     {
@@ -74,10 +116,18 @@ class WishlistController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/wishlists/{id}",
+     *     operationId="removeFromWishlist",
+     *     tags={"Wishlist"},
+     *     summary="Remove Product from Wishlist",
+     *     description="Remove a specific product from the current user's wishlist.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Product ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Product removed successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=404, description="Product not found")
+     * )
      */
     public function destroy(Request $request, $id)
     {

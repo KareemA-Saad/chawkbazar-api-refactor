@@ -42,6 +42,25 @@ use Marvel\Traits\UsersTrait;
 use Marvel\Traits\WalletsTrait;
 use Spatie\Newsletter\Facades\Newsletter;
 
+/**
+ * @OA\Tag(name="User Management", description="User management endpoints [SUPER_ADMIN, STORE_OWNER, STAFF, CUSTOMER]")
+ *
+ * @OA\Schema(
+ *     schema="User",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="John Doe"),
+ *     @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+ *     @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="is_active", type="boolean", example=true),
+ *     @OA\Property(property="shop_id", type="integer", nullable=true),
+ *     @OA\Property(property="profile", type="object", @OA\Property(property="avatar", type="object"), @OA\Property(property="bio", type="string"), @OA\Property(property="contact", type="string")),
+ *     @OA\Property(property="address", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="permissions", type="array", @OA\Items(type="object", @OA\Property(property="name", type="string", example="store_owner")))
+ * )
+ */
 class UserController extends CoreController
 {
     use WalletsTrait, UsersTrait;
@@ -95,9 +114,18 @@ class UserController extends CoreController
 
 
     /**
-     * admins
-     *
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     * @OA\Get(
+     *     path="/admins",
+     *     operationId="getAdmins",
+     *     tags={"User Management"},
+     *     summary="List Admin Users",
+     *     description="Get list of all admin users. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(response=200, description="Admins retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function admins(Request $request)
     {
@@ -114,10 +142,18 @@ class UserController extends CoreController
     }
 
     /**
-     * vendors
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/vendors",
+     *     operationId="getVendors",
+     *     tags={"User Management"},
+     *     summary="List Vendor Users",
+     *     description="Get list of all store owner/vendor users.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="is_active", in="query", description="Filter by active status", @OA\Schema(type="boolean")),
+     *     @OA\Response(response=200, description="Vendors retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function vendors(Request $request)
     {
@@ -143,10 +179,17 @@ class UserController extends CoreController
     }
 
     /**
-     * customers
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/customers",
+     *     operationId="getCustomers",
+     *     tags={"User Management"},
+     *     summary="List Customer Users",
+     *     description="Get list of all customer users (excluding admins, vendors, and staff).",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(response=200, description="Customers retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function customers(Request $request)
     {
@@ -159,9 +202,18 @@ class UserController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @return Response
+     * @OA\Get(
+     *     path="/users",
+     *     operationId="listUsers",
+     *     tags={"User Management"},
+     *     summary="List All Users",
+     *     description="Get paginated list of all users. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(response=200, description="Users retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
      */
     public function index(Request $request)
     {
@@ -170,10 +222,28 @@ class UserController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *Í
-     * @param UserCreateRequest $request
-     * @return bool[]
+     * @OA\Post(
+     *     path="/users",
+     *     operationId="createUser",
+     *     tags={"User Management"},
+     *     summary="Create User (Admin)",
+     *     description="Create a new user with any role. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "email", "password"},
+     *             @OA\Property(property="name", type="string", example="New User"),
+     *             @OA\Property(property="email", type="string", format="email", example="newuser@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123"),
+     *             @OA\Property(property="permission", type="string", enum={"customer", "store_owner", "staff", "editor", "super_admin"}, example="customer")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="User created successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(UserCreateRequest $request)
     {
@@ -185,10 +255,19 @@ class UserController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return array
+     * @OA\Get(
+     *     path="/users/{id}",
+     *     operationId="getUser",
+     *     tags={"User Management"},
+     *     summary="Get User Details",
+     *     description="Get a single user's full details. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="User retrieved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
      */
     public function show($id)
     {
@@ -200,11 +279,27 @@ class UserController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param UserUpdateRequest $request
-     * @param int $id
-     * @return array
+     * @OA\Put(
+     *     path="/users/{id}",
+     *     operationId="updateUser",
+     *     tags={"User Management"},
+     *     summary="Update User",
+     *     description="Update user profile. SUPER_ADMIN can update any user; others can only update themselves.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string", example="Updated Name"),
+     *             @OA\Property(property="email", type="string", format="email", example="updated@example.com"),
+     *             @OA\Property(property="profile", type="object"),
+     *             @OA\Property(property="address", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="User updated successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function update(UserUpdateRequest $request, $id)
     {
@@ -215,13 +310,23 @@ class UserController extends CoreController
             $user = $request->user();
             return $this->repository->updateUser($request, $user);
         }
+        throw new AuthorizationException(NOT_AUTHORIZED);
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return array
+     * @OA\Delete(
+     *     path="/users/{id}",
+     *     operationId="deleteUser",
+     *     tags={"User Management"},
+     *     summary="Delete User",
+     *     description="Permanently delete a user. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="User deleted successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
      */
     public function destroy($id)
     {
@@ -232,6 +337,30 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/me",
+     *     operationId="getCurrentUser",
+     *     tags={"Authentication"},
+     *     summary="Get Current User",
+     *     description="Get the currently authenticated user's profile with wallet, addresses, and shop information",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="User profile retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="id", type="integer", example=1),
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", example="john@example.com"),
+     *             @OA\Property(property="role", type="string", example="customer"),
+     *             @OA\Property(property="profile", type="object"),
+     *             @OA\Property(property="wallet", type="object"),
+     *             @OA\Property(property="address", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function me(Request $request)
     {
         try {
@@ -359,22 +488,30 @@ class UserController extends CoreController
      *     ),
      *     @OA\Response(
      *         response=403,
-     *         description="Not authorized (attempted to register as super_admin)"
+     *         description="Not authorized (attempted to register as super_admin, editor, or staff - these roles are admin-assigned only)"
      *     )
      * )
      */
     public function register(UserCreateRequest $request)
     {
-        $notAllowedPermissions = [Permission::SUPER_ADMIN];
+        // Block privileged roles from self-registration
+        // Only super_admin can assign these roles via user management
+        $notAllowedPermissions = [Permission::SUPER_ADMIN, Permission::EDITOR, Permission::STAFF];
         if ((isset($request->permission->value) && in_array($request->permission->value, $notAllowedPermissions)) || (isset($request->permission) && in_array($request->permission, $notAllowedPermissions))) {
             throw new AuthorizationException(NOT_AUTHORIZED);
         }
+
+        // Start with customer permission and role
         $permissions = [Permission::CUSTOMER];
         $role = Role::CUSTOMER;
-        if (isset($request->permission)) {
-            $permissions[] = isset($request->permission->value) ? $request->permission->value : $request->permission;
+
+        // If store_owner permission is explicitly requested, add it
+        $requestedPermission = isset($request->permission->value) ? $request->permission->value : $request->permission;
+        if (isset($requestedPermission) && $requestedPermission === Permission::STORE_OWNER) {
+            $permissions[] = Permission::STORE_OWNER;
             $role = Role::STORE_OWNER;
         }
+
         // Mark user as verified by default on registration
         $user = $this->repository->create([
             'name' => $request->name,
@@ -383,8 +520,9 @@ class UserController extends CoreController
             'email_verified_at' => now(),
         ]);
 
-        $user->givePermissionTo($permissions);
+        $user->givePermissionTo(array_unique($permissions));  // Ensure no duplicates
         $user->assignRole($role);
+        $user->load('roles'); // Refresh roles relation to fix null role issue
         $this->giveSignupPointsToCustomer($user->id);
         event(new ProcessUserData());
         return [
@@ -394,6 +532,26 @@ class UserController extends CoreController
         ];
     }
 
+    /**
+     * @OA\Post(
+     *     path="/ban-user",
+     *     operationId="banUser",
+     *     tags={"User Management"},
+     *     summary="Ban User",
+     *     description="Deactivate a user account and all their shops. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="User ID to ban")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="User banned successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
+     */
     public function banUser(Request $request)
     {
         try {
@@ -420,6 +578,26 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/active-user",
+     *     operationId="activateUser",
+     *     tags={"User Management"},
+     *     summary="Activate User",
+     *     description="Reactivate a banned user account. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="User ID to activate")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="User activated successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
+     */
     public function activeUser(Request $request)
     {
         try {
@@ -563,6 +741,31 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/change-password",
+     *     operationId="changePassword",
+     *     tags={"Password Management"},
+     *     summary="Change Password",
+     *     description="Change the current user's password (requires old password)",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"oldPassword", "newPassword"},
+     *             @OA\Property(property="oldPassword", type="string", format="password", example="currentPassword123"),
+     *             @OA\Property(property="newPassword", type="string", format="password", example="newSecurePassword456")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password changed successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/MessageResponse")
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error or old password incorrect")
+     * )
+     */
     public function changePassword(ChangePasswordRequest $request)
     {
         try {
@@ -620,6 +823,29 @@ class UserController extends CoreController
         return $query->paginate($limit);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/social-login-token",
+     *     operationId="socialLogin",
+     *     tags={"Authentication"},
+     *     summary="Social Login",
+     *     description="Login or register using Facebook or Google OAuth token",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"provider", "access_token"},
+     *             @OA\Property(property="provider", type="string", enum={"facebook", "google"}, example="google"),
+     *             @OA\Property(property="access_token", type="string", example="ya29.a0AfH6SMC...")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successfully authenticated",
+     *         @OA\JsonContent(ref="#/components/schemas/AuthResponse")
+     *     ),
+     *     @OA\Response(response=422, description="Invalid provider or token")
+     * )
+     */
     public function socialLogin(Request $request)
     {
         $provider = $request->provider;
@@ -708,6 +934,10 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * Send OTP Code - ROUTE DISABLED
+     * Uncomment routes in Routes.php to enable
+     */
     public function sendOtpCode(Request $request)
     {
         $phoneNumber = $request->phone_number;
@@ -735,6 +965,10 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * Verify OTP Code - ROUTE DISABLED
+     * Uncomment routes in Routes.php to enable
+     */
     public function verifyOtpCode(Request $request)
     {
         try {
@@ -750,6 +984,10 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * Login via OTP - ROUTE DISABLED
+     * Uncomment routes in Routes.php to enable
+     */
     public function otpLogin(Request $request)
     {
         $phoneNumber = $request->phone_number;
@@ -831,6 +1069,28 @@ class UserController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/add-points",
+     *     operationId="addPoints",
+     *     tags={"User Management"},
+     *     summary="Add Loyalty Points",
+     *     description="Add loyalty/reward points to a customer's wallet. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"customer_id", "points"},
+     *             @OA\Property(property="customer_id", type="integer", example=5, description="User ID to add points to"),
+     *             @OA\Property(property="points", type="number", example=100, description="Number of points to add")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Points added successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function addPoints(Request $request)
     {
         $request->validate([
@@ -844,8 +1104,30 @@ class UserController extends CoreController
         $wallet->total_points = $wallet->total_points + $points;
         $wallet->available_points = $wallet->available_points + $points;
         $wallet->save();
+        return ['message' => 'Points added successfully', 'success' => true];
     }
 
+    /**
+     * @OA\Post(
+     *     path="/users/make-admin",
+     *     operationId="makeOrRevokeAdmin",
+     *     tags={"User Management"},
+     *     summary="Toggle Admin Status",
+     *     description="Grant or revoke SUPER_ADMIN permission from a user. If user is admin, revokes; if not, grants. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"user_id"},
+     *             @OA\Property(property="user_id", type="integer", example=5, description="User ID to toggle admin status")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Admin status toggled successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
+     */
     public function makeOrRevokeAdmin(Request $request)
     {
         $user = $request->user();
@@ -869,6 +1151,25 @@ class UserController extends CoreController
 
         throw new MarvelException(NOT_AUTHORIZED);
     }
+    /**
+     * @OA\Post(
+     *     path="/subscribe-to-newsletter",
+     *     operationId="subscribeNewsletter",
+     *     tags={"Users"},
+     *     summary="Subscribe to newsletter",
+     *     description="Add an email address to the platform's newsletter subscription list.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="buyer@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Successfully subscribed", @OA\JsonContent(type="boolean", example=true)),
+     *     @OA\Response(response=422, description="Validation error"),
+     *     @OA\Response(response=500, description="Something went wrong")
+     * )
+     */
     public function subscribeToNewsletter(Request $request)
     {
         try {
@@ -879,6 +1180,26 @@ class UserController extends CoreController
             throw new MarvelException(SOMETHING_WENT_WRONG);
         }
     }
+    /**
+     * @OA\Post(
+     *     path="/update-email",
+     *     operationId="updateEmail",
+     *     tags={"Authentication"},
+     *     summary="Update User Email",
+     *     description="Update the current user's email address. Requires authentication.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="newemail@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Email updated successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function updateUserEmail(Request $request)
     {
         $validator = Validator::make($request->all(), [

@@ -15,6 +15,23 @@ use Prettus\Validator\Exceptions\ValidatorException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Marvel\Http\Resources\TermsConditionResource;
 
+/**
+ * @OA\Tag(name="Terms & Conditions", description="Public and shop-specific terms and conditions management")
+ *
+ * @OA\Schema(
+ *     schema="TermsAndConditions",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="title", type="string", example="Privacy Policy"),
+ *     @OA\Property(property="slug", type="string", example="privacy-policy"),
+ *     @OA\Property(property="description", type="string", example="Our detailed privacy policy..."),
+ *     @OA\Property(property="shop_id", type="integer", nullable=true),
+ *     @OA\Property(property="is_approved", type="boolean", example=true),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class TermsAndConditionsController extends CoreController
 {
     public $repository;
@@ -26,10 +43,25 @@ class TermsAndConditionsController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|TermsAndConditions[]
+     * @OA\Get(
+     *     path="/terms-and-conditions",
+     *     operationId="getTermsAndConditions",
+     *     tags={"Terms & Conditions"},
+     *     summary="List Terms & Conditions",
+     *     description="Retrieve a paginated list of terms and conditions. Public users see only approved ones.",
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=10)),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Parameter(name="shop_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Terms & conditions retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/TermsAndConditions")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -104,10 +136,21 @@ class TermsAndConditionsController extends CoreController
     }
 
     /**
-     * Display the specified termsAndConditions.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/terms-and-conditions/{slug}",
+     *     operationId="getTermsAndConditionsBySlug",
+     *     tags={"Terms & Conditions"},
+     *     summary="Get Single Terms & Conditions",
+     *     description="Retrieve details of a terms and conditions by its slug.",
+     *     @OA\Parameter(name="slug", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Terms & conditions details retrieved",
+     *         @OA\JsonContent(ref="#/components/schemas/TermsAndConditions")
+     *     ),
+     *     @OA\Response(response=404, description="Terms & conditions not found")
+     * )
      */
     public function show(Request $request, $slug)
     {

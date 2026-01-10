@@ -16,6 +16,22 @@ use Marvel\Http\Requests\ConversationCreateRequest;
 use Prettus\Validator\Exceptions\ValidatorException;
 
 
+/**
+ * @OA\Tag(name="Conversations", description="Direct messaging between customers and shops")
+ *
+ * @OA\Schema(
+ *     schema="Conversation",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="shop_id", type="integer", example=2),
+ *     @OA\Property(property="user_id", type="integer", example=10),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time"),
+ *     @OA\Property(property="shop", ref="#/components/schemas/Shop"),
+ *     @OA\Property(property="user", ref="#/components/schemas/User"),
+ *     @OA\Property(property="latest_message", type="object", nullable=true)
+ * )
+ */
 class ConversationController extends CoreController
 {
     public $repository;
@@ -26,10 +42,25 @@ class ConversationController extends CoreController
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Conversation[]
+     * @OA\Get(
+     *     path="/conversations",
+     *     operationId="getConversations",
+     *     tags={"Conversations"},
+     *     summary="List Conversations",
+     *     description="Get a paginated list of conversations for the current user (as customer or shop owner/staff).",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Conversations retrieved",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Conversation")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request)
     {
@@ -39,6 +70,20 @@ class ConversationController extends CoreController
         return $conversation->paginate($limit);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/conversations/{id}",
+     *     operationId="getConversation",
+     *     tags={"Conversations"},
+     *     summary="Get Conversation Details",
+     *     description="Retrieve details and messages of a single conversation.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Conversation retrieved", @OA\JsonContent(ref="#/components/schemas/Conversation")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=404, description="Conversation not found")
+     * )
+     */
     public function show($conversation_id)
     {
         $user = Auth::user();

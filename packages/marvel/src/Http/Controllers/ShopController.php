@@ -268,6 +268,29 @@ class ShopController extends CoreController
         throw new AuthorizationException(NOT_AUTHORIZED);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/approve-shop",
+     *     operationId="approveShop",
+     *     tags={"Shop Administration"},
+     *     summary="Approve Shop",
+     *     description="Approve a pending shop and set commission rate. Activates shop and publishes all products. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Shop ID to approve"),
+     *             @OA\Property(property="admin_commission_rate", type="number", example=10.5, description="Custom commission rate (optional)"),
+     *             @OA\Property(property="isCustomCommission", type="boolean", example=false, description="Use custom commission rate")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Shop approved successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Shop not found")
+     * )
+     */
     public function approveShop(Request $request)
     {
 
@@ -305,6 +328,27 @@ class ShopController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/disapprove-shop",
+     *     operationId="disapproveShop",
+     *     tags={"Shop Administration"},
+     *     summary="Disapprove/Disable Shop",
+     *     description="Disable a shop and set all its products to draft. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Shop ID to disapprove")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Shop disapproved successfully", @OA\JsonContent(ref="#/components/schemas/Shop")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Shop not found")
+     * )
+     */
     public function disApproveShop(Request $request)
     {
         try {
@@ -329,6 +373,65 @@ class ShopController extends CoreController
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/staffs",
+     *     operationId="getStaffs",
+     *     tags={"Staff Management"},
+     *     summary="List Shop Staff",
+     *     description="Get list of staff members for a shop. Requires STORE_OWNER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="shop_id", in="query", required=true, description="Shop ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Staff list retrieved",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/User")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
+    public function staffs(Request $request)
+    {
+        $limit = $request->limit ? $request->limit : 15;
+        $shop_id = $request->shop_id;
+        try {
+            if ($this->repository->hasPermission($request->user(), $shop_id)) {
+                return User::permission(Permission::STAFF)->where('shop_id', $shop_id)->paginate($limit);
+            }
+            throw new AuthorizationException(NOT_AUTHORIZED);
+        } catch (MarvelException $e) {
+            throw new MarvelException(SOMETHING_WENT_WRONG);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/staffs",
+     *     operationId="addStaff",
+     *     tags={"Staff Management"},
+     *     summary="Add Staff to Shop",
+     *     description="Create a new staff member for a shop. Only the shop owner can add staff.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "email", "password", "shop_id"},
+     *             @OA\Property(property="name", type="string", example="John Staff"),
+     *             @OA\Property(property="email", type="string", format="email", example="staff@myshop.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="staffPassword123"),
+     *             @OA\Property(property="shop_id", type="integer", example=5, description="ID of the shop to assign staff to")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Staff created successfully", @OA\JsonContent(@OA\Property(property="success", type="boolean", example=true))),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - not shop owner")
+     * )
+     */
     public function addStaff(UserCreateRequest $request)
     {
         try {
@@ -352,6 +455,21 @@ class ShopController extends CoreController
         }
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/staffs/{id}",
+     *     operationId="deleteStaff",
+     *     tags={"Staff Management"},
+     *     summary="Delete Staff Member",
+     *     description="Remove a staff member from the shop. Only the shop owner can delete staff.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Staff user ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Staff deleted successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - not shop owner"),
+     *     @OA\Response(response=404, description="Staff not found")
+     * )
+     */
     public function deleteStaff(Request $request, $id)
     {
         try {
@@ -616,10 +734,19 @@ class ShopController extends CoreController
     }
 
     /**
-     * newOrInActiveShops
-     *
-     * @param  Request $request
-     * @return Collection|Shop[]
+     * @OA\Get(
+     *     path="/new-shops",
+     *     operationId="getNewOrInactiveShops",
+     *     tags={"Shop Administration"},
+     *     summary="List Pending/Inactive Shops",
+     *     description="Get paginated list of shops filtered by active status. Use is_active=false for pending shops. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="is_active", in="query", required=true, description="Filter by active status (false=pending)", @OA\Schema(type="boolean")),
+     *     @OA\Parameter(name="limit", in="query", description="Items per page", @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(response=200, description="Shops retrieved successfully", @OA\JsonContent(ref="#/components/schemas/PaginatedShops")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
      */
     public function newOrInActiveShops(Request $request)
     {
@@ -632,8 +759,26 @@ class ShopController extends CoreController
     }
 
     /**
-     * transferShopOwnership
-     *
+     * @OA\Post(
+     *     path="/transfer-shop-ownership",
+     *     operationId="transferShopOwnership",
+     *     tags={"Shops"},
+     *     summary="Transfer Shop Ownership",
+     *     description="Transfer ownership of a shop to another user. Requires STORE_OWNER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"shop_id", "admin_id"},
+     *             @OA\Property(property="shop_id", type="integer", example=5, description="Shop ID"),
+     *             @OA\Property(property="admin_id", type="integer", example=10, description="User ID to transfer ownership to")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Ownership transferred successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Shop or User not found")
+     * )
      */
     public function transferShopOwnership(TransferShopOwnerShipRequest $request)
     {

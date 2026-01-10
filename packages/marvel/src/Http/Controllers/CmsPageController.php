@@ -38,10 +38,16 @@ use OpenApi\Annotations as OA;
  *     description="Enter your Bearer token obtained from /token endpoint"
  * )
  *
- * @OA\Tag(name="Authentication", description="User authentication and registration endpoints")
- * @OA\Tag(name="Password Management", description="Password reset and recovery endpoints")
- * @OA\Tag(name="OTP Authentication", description="One-Time Password based authentication")
- * @OA\Tag(name="Puck Pages", description="Page builder endpoints for Puck integration")
+ * @OA\Tag(name="Authentication", description="User authentication and registration endpoints [ALL ROLES]")
+ * @OA\Tag(name="Password Management", description="Password reset and recovery endpoints [ALL ROLES]")
+ * @OA\Tag(name="User Management", description="User administration - list, ban, activate users [SUPER_ADMIN]")
+ * @OA\Tag(name="Staff Management", description="Shop staff management - add/remove staff members [STORE_OWNER]")
+ * @OA\Tag(name="Shop Administration", description="Shop approval and management operations [SUPER_ADMIN]")
+ * @OA\Tag(name="Withdrawal Management", description="Vendor payout requests and approval [SUPER_ADMIN, STORE_OWNER]")
+ * @OA\Tag(name="Platform Configuration", description="Settings, taxes, and shipping configuration [SUPER_ADMIN]")
+ * @OA\Tag(name="Content Moderation", description="Abuse reports and content approval management [SUPER_ADMIN]")
+ * @OA\Tag(name="Puck Pages", description="Page builder endpoints for Puck integration [EDITOR, SUPER_ADMIN]")
+ * @OA\Tag(name="CMS Pages", description="Content management system pages [EDITOR, SUPER_ADMIN]")
  *
  * @OA\Schema(
  *     schema="AuthResponse",

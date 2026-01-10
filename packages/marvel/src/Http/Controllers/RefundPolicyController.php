@@ -15,6 +15,23 @@ use Marvel\Http\Requests\StoreRefundPolicyRequest;
 use Marvel\Http\Requests\UpdateRefundPolicyRequest;
 use Marvel\Http\Resources\RefundPolicyResource;
 
+/**
+ * @OA\Tag(name="Refund Policies", description="Public and shop-specific refund policy management")
+ *
+ * @OA\Schema(
+ *     schema="RefundPolicy",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="title", type="string", example="30-Day Return Policy"),
+ *     @OA\Property(property="slug", type="string", example="30-day-return-policy"),
+ *     @OA\Property(property="description", type="string", example="Detailed policy text..."),
+ *     @OA\Property(property="amount", type="number", example=0.00),
+ *     @OA\Property(property="status", type="string", example="approved"),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class RefundPolicyController extends CoreController
 {
 
@@ -24,10 +41,24 @@ class RefundPolicyController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     *
+     * @OA\Get(
+     *     path="/refund-policies",
+     *     operationId="getRefundPolicies",
+     *     tags={"Refund Policies"},
+     *     summary="List Refund Policies",
+     *     description="Retrieve a paginated list of refund policies.",
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Refund policies retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/RefundPolicy")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -62,10 +93,21 @@ class RefundPolicyController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $slug
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/refund-policies/{slug}",
+     *     operationId="getRefundPolicyBySlug",
+     *     tags={"Refund Policies"},
+     *     summary="Get Single Refund Policy",
+     *     description="Retrieve details of a refund policy by its slug.",
+     *     @OA\Parameter(name="slug", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Refund policy details retrieved successfuly",
+     *         @OA\JsonContent(ref="#/components/schemas/RefundPolicy")
+     *     ),
+     *     @OA\Response(response=404, description="Refund policy not found")
+     * )
      */
     public function show(Request $request, $slug)
     {

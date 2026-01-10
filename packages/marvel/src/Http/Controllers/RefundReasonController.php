@@ -14,6 +14,20 @@ use Marvel\Http\Requests\RefundReasonUpdateRequest;
 use Prettus\Validator\Exceptions\ValidatorException;
 
 
+/**
+ * @OA\Tag(name="Refund Reasons", description="Public and shop-specific refund reason management")
+ *
+ * @OA\Schema(
+ *     schema="RefundReason",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Damaged Item"),
+ *     @OA\Property(property="slug", type="string", example="damaged-item"),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class RefundReasonController extends CoreController
 {
     public $repository;
@@ -23,10 +37,24 @@ class RefundReasonController extends CoreController
         $this->repository = $repository;
     }
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Tag[]
+     * @OA\Get(
+     *     path="/refund-reasons",
+     *     operationId="getRefundReasons",
+     *     tags={"Refund Reasons"},
+     *     summary="List Refund Reasons",
+     *     description="Retrieve a paginated list of refund reasons.",
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Refund reasons retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/RefundReason")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -60,10 +88,21 @@ class RefundReasonController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/refund-reasons/{id_or_slug}",
+     *     operationId="getRefundReason",
+     *     tags={"Refund Reasons"},
+     *     summary="Get Single Refund Reason",
+     *     description="Retrieve details of a refund reason by its ID or slug.",
+     *     @OA\Parameter(name="id_or_slug", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Refund reason details retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/RefundReason")
+     *     ),
+     *     @OA\Response(response=404, description="Refund reason not found")
+     * )
      */
     public function show(Request $request, $params)
     {

@@ -21,9 +21,23 @@ use Marvel\Http\Resources\StoreNoticeResource;
 use Prettus\Validator\Exceptions\ValidatorException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Schema(
+ *     schema="StoreNotice",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="type", type="string", example="all_vendor"),
+ *     @OA\Property(property="priority", type="string", example="high"),
+ *     @OA\Property(property="notice", type="string", example="System Maintenance"),
+ *     @OA\Property(property="description", type="string", example="We will be down for 2 hours..."),
+ *     @OA\Property(property="effective_from", type="string", format="date-time"),
+ *     @OA\Property(property="expired_at", type="string", format="date-time"),
+ *     @OA\Property(property="is_read", type="boolean", example=false)
+ * )
+ */
 class StoreNoticeController extends CoreController
 {
     public $repository;
+
     private $repositoryPivot;
 
     public function __construct(StoreNoticeRepository $repository, StoreNoticeReadRepository $repositoryPivot)
@@ -34,8 +48,29 @@ class StoreNoticeController extends CoreController
 
 
     /**
-     * @param Request $request
-     * @return LengthAwarePaginator|Collection|mixed
+     * @OA\Get(
+     *     path="/store-notices",
+     *     operationId="getStoreNotices",
+     *     tags={"Store Notices"},
+     *     summary="List store notices",
+     *     description="Retrieve a paginated list of store notices for the authenticated user.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         @OA\Schema(type="integer", default=15)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of notices retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/StoreNotice")),
+     *             @OA\Property(property="current_page", type="integer"),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -60,11 +95,27 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param StoreNoticeRequest $request
-     * @return LengthAwarePaginator|Collection|mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/store-notices",
+     *     operationId="storeStoreNotice",
+     *     tags={"Store Notices"},
+     *     summary="Create a new store notice",
+     *     description="Post a notice for shops or users. Restricted to Super Admin or Shop Owner.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"notice", "description", "priority", "type"},
+     *             @OA\Property(property="notice", type="string", example="Holiday Closure"),
+     *             @OA\Property(property="description", type="string", example="Shop will be closed..."),
+     *             @OA\Property(property="priority", type="string", enum={"high", "medium", "low"}),
+     *             @OA\Property(property="type", type="string"),
+     *             @OA\Property(property="received_by", type="array", @OA\Items(type="integer"), description="Array of shop or user IDs")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Notice created successfully", @OA\JsonContent(ref="#/components/schemas/StoreNotice")),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function store(StoreNoticeRequest $request)
     {
@@ -79,8 +130,15 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     * @param Request $request
-     * @return array|array[]
+     * @OA\Get(
+     *     path="/store-notices/getStoreNoticeType",
+     *     operationId="getStoreNoticeTypes",
+     *     tags={"Store Notices"},
+     *     summary="Get available notice types",
+     *     description="Retrieve list of valid notice types (e.g., all_shop, all_vendor).",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="List of types retrieved successfully")
+     * )
      */
     public function getStoreNoticeType(Request $request)
     {
@@ -88,10 +146,16 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     * This method will generate User list or Shop list based on requested user permission
-     * @param Request $request
-     * @return \Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection
-     * @throws MarvelException
+     * @OA\Get(
+     *     path="/store-notices/getUsersToNotify",
+     *     operationId="getUsersToNotify",
+     *     tags={"Store Notices"},
+     *     summary="Get candidates for notice recipients",
+     *     description="Retrieve users or shops that can receive notices based on current user scope.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="type", in="query", required=true),
+     *     @OA\Response(response=200, description="List retrieved successfully")
+     * )
      */
     public function getUsersToNotify(Request $request)
     {
@@ -103,11 +167,16 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
-     * @throws MarvelException
+     * @OA\Get(
+     *     path="/store-notices/{id}",
+     *     operationId="getStoreNoticeById",
+     *     tags={"Store Notices"},
+     *     summary="Get single store notice",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Notice found", @OA\JsonContent(ref="#/components/schemas/StoreNotice")),
+     *     @OA\Response(response=404, description="Notice not found")
+     * )
      */
     public function show(Request $request, $id)
     {
@@ -121,12 +190,22 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param StoreNoticeUpdateRequest $request
-     * @param $id
-     * @return StoreNotice
-     * @throws MarvelException
+     * @OA\Put(
+     *     path="/store-notices/{id}",
+     *     operationId="updateStoreNotice",
+     *     tags={"Store Notices"},
+     *     summary="Update store notice",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         @OA\JsonContent(
+     *             @OA\Property(property="notice", type="string"),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="priority", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Notice updated", @OA\JsonContent(ref="#/components/schemas/StoreNotice"))
+     * )
      */
     public function update(StoreNoticeUpdateRequest $request, $id)
     {
@@ -138,33 +217,17 @@ class StoreNoticeController extends CoreController
         }
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param Request $request
-     * @return StoreNotice
-     * @throws MarvelException
-     */
-    public function updateStoreNotice(Request $request)
-    {
-        $id = $request->id;
-        try {
-            if ($request->user()->hasPermissionTo(Permission::SUPER_ADMIN) || $this->repository->hasPermission($request->user(), $request->received_by[0] ?? 0)) {
-                $storeNotice = $this->repository->findOrFail($id);
-                return $this->repository->updateStoreNotice($request, $storeNotice);
-            }
-            throw new AuthorizationException(NOT_AUTHORIZED);
-        } catch (Exception $e) {
-            throw new HttpException(400, COULD_NOT_DELETE_THE_RESOURCE);
-        }
-    }
 
     /**
-     * Remove the specified resource from storage.
-     * @param Request $request
-     * @param $id
-     * @return bool
-     * @throws MarvelException
+     * @OA\Delete(
+     *     path="/store-notices/{id}",
+     *     operationId="deleteStoreNotice",
+     *     tags={"Store Notices"},
+     *     summary="Delete store notice",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Notice deleted successfully")
+     * )
      */
     public function destroy(Request $request, $id)
     {
@@ -194,11 +257,20 @@ class StoreNoticeController extends CoreController
     }
 
     /**
-     *  Update the specified resource in storage.
-     * This method will update read_status of a single StoreNotice for requested user { id in requestBody }.
-     * @param Request $request 
-     * @return JsonResponse|null
-     * @throws MarvelException
+     * @OA\Post(
+     *     path="/store-notices/read",
+     *     operationId="markNoticeAsRead",
+     *     tags={"Store Notices"},
+     *     summary="Mark a single notice as read",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Marked as read successfully")
+     * )
      */
     public function readNotice(Request $request)
     {
@@ -212,12 +284,22 @@ class StoreNoticeController extends CoreController
         }
     }
 
+
     /**
-     *  Update or Store resources in storage.
-     * This method will update read_status of a multiple StoreNotice for requested user { array of id in requestBody }.
-     * @param Request $request 
-     * @return JsonResponse|null
-     * @throws MarvelException
+     * @OA\Post(
+     *     path="/store-notices/read-all",
+     *     operationId="markAllNoticesAsRead",
+     *     tags={"Store Notices"},
+     *     summary="Mark multiple notices as read",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         @OA\JsonContent(
+     *             required={"notices"},
+     *             @OA\Property(property="notices", type="array", @OA\Items(type="integer", example=1))
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Notices marked as read")
+     * )
      */
     public function readAllNotice(Request $request)
     {

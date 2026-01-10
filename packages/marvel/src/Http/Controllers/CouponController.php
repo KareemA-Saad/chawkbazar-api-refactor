@@ -18,6 +18,23 @@ use Marvel\Http\Resources\CouponResource;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
+/**
+ * @OA\Schema(
+ *     schema="Coupon",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="code", type="string", example="SAVE50"),
+ *     @OA\Property(property="description", type="string", example="Get 50% off your first order"),
+ *     @OA\Property(property="image", type="object"),
+ *     @OA\Property(property="type", type="string", example="percentage"),
+ *     @OA\Property(property="amount", type="number", format="float", example=50.00),
+ *     @OA\Property(property="minimum_cart_amount", type="number", format="float", example=100.00),
+ *     @OA\Property(property="active_from", type="string", format="date-time"),
+ *     @OA\Property(property="expire_at", type="string", format="date-time"),
+ *     @OA\Property(property="is_approve", type="boolean", example=true),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="shop_id", type="integer")
+ * )
+ */
 class CouponController extends CoreController
 {
     public $repository;
@@ -28,7 +45,26 @@ class CouponController extends CoreController
     }
 
     /**
-     * Display a listing of the resource.
+     * @OA\Get(
+     *     path="/coupons",
+     *     operationId="getCoupons",
+     *     tags={"Coupons"},
+     *     summary="List all coupons",
+     *     description="Retrieve a paginated list of coupons with optional shop and language filtering.",
+     *     @OA\Parameter(name="limit", in="query", @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="shop_id", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="language", in="query", @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of coupons",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Coupon")),
+     *             @OA\Property(property="current_page", type="integer"),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -77,11 +113,29 @@ class CouponController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param CouponRequest $request
-     * @return LengthAwarePaginator|Collection|mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/coupons",
+     *     operationId="storeCoupon",
+     *     tags={"Coupons"},
+     *     summary="Create new coupon",
+     *     description="Create a new coupon for a shop. Accessible by Store Owners and Super Admins.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"code", "type", "amount", "shop_id"},
+     *             @OA\Property(property="code", type="string", example="SUMMER24"),
+     *             @OA\Property(property="type", type="string", enum={"percentage", "fixed", "free_shipping"}),
+     *             @OA\Property(property="amount", type="number", example=20),
+     *             @OA\Property(property="shop_id", type="integer", example=1),
+     *             @OA\Property(property="minimum_cart_amount", type="number", example=100),
+     *             @OA\Property(property="active_from", type="string", format="date-time"),
+     *             @OA\Property(property="expire_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Coupon created", @OA\JsonContent(ref="#/components/schemas/Coupon")),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(CouponRequest $request)
     {
@@ -93,10 +147,17 @@ class CouponController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/coupons/{slug_or_id}",
+     *     operationId="getCouponBySlugOrId",
+     *     tags={"Coupons"},
+     *     summary="Get single coupon",
+     *     description="Retrieve details of a coupon by its code/slug or incremental ID.",
+     *     @OA\Parameter(name="slug_or_id", in="path", required=true, description="Coupon code or ID", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="language", in="query", description="Language code", @OA\Schema(type="string", default="en")),
+     *     @OA\Response(response=200, description="Coupon found", @OA\JsonContent(ref="#/components/schemas/Coupon")),
+     *     @OA\Response(response=404, description="Coupon not found")
+     * )
      */
     public function show(Request $request, $params)
     {
@@ -116,15 +177,28 @@ class CouponController extends CoreController
         }
     }
     /**
-     * Verify Coupon by code.
-     *
-     * @param int $id
-     * @return mixed
+     * @OA\Post(
+     *     path="/coupons/verify",
+     *     operationId="verifyCoupon",
+     *     tags={"Coupons"},
+     *     summary="Verify coupon code",
+     *     description="Check if a coupon code is valid for the current sub_total.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"code", "sub_total"},
+     *             @OA\Property(property="code", type="string", example="SUMMER24"),
+     *             @OA\Property(property="sub_total", type="number", example=100.00)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Coupon verification result"),
+     *     @OA\Response(response=404, description="Coupon not found or invalid")
+     * )
      */
     public function verify(Request $request)
     {
         $request->validate([
-            'code'      => 'required|string',
+            'code' => 'required|string',
             'sub_total' => 'required|numeric',
         ]);
         try {
@@ -135,11 +209,24 @@ class CouponController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param CouponRequest $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/coupons/{id}",
+     *     operationId="updateCoupon",
+     *     tags={"Coupons"},
+     *     summary="Update coupon",
+     *     description="Update details of an existing coupon. Accessible by Staff, Owners, or Admins.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         @OA\JsonContent(
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="amount", type="number"),
+     *             @OA\Property(property="expire_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Coupon updated", @OA\JsonContent(ref="#/components/schemas/Coupon")),
+     *     @OA\Response(response=404, description="Coupon not found")
+     * )
      */
     public function update(UpdateCouponRequest $request, $id)
     {
@@ -187,10 +274,16 @@ class CouponController extends CoreController
 
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/coupons/{id}",
+     *     operationId="deleteCoupon",
+     *     tags={"Coupons"},
+     *     summary="Delete coupon",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Coupon deleted successfully"),
+     *     @OA\Response(response=404, description="Coupon not found")
+     * )
      */
     public function destroy($id)
     {
@@ -201,6 +294,27 @@ class CouponController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/approve-coupon",
+     *     operationId="approveCoupon",
+     *     tags={"Content Moderation"},
+     *     summary="Approve Vendor Coupon",
+     *     description="Approve a vendor-created coupon for public use. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Coupon ID to approve")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Coupon approved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Coupon not found")
+     * )
+     */
     public function approveCoupon(Request $request)
     {
 
@@ -216,6 +330,27 @@ class CouponController extends CoreController
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/disapprove-coupon",
+     *     operationId="disapproveCoupon",
+     *     tags={"Content Moderation"},
+     *     summary="Disapprove Vendor Coupon",
+     *     description="Reject/disapprove a vendor coupon. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"id"},
+     *             @OA\Property(property="id", type="integer", example=5, description="Coupon ID to disapprove")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Coupon disapproved successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Coupon not found")
+     * )
+     */
     public function disApproveCoupon(Request $request)
     {
         try {

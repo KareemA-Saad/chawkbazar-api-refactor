@@ -28,6 +28,48 @@ class AnalyticsController extends CoreController
     }
 
 
+    /**
+     * @OA\Get(
+     *     path="/analytics",
+     *     operationId="getAnalytics",
+     *     tags={"Analytics"},
+     *     summary="Get shop or platform analytics",
+     *     description="Retrieve comprehensive analytics including revenue, refunds, orders, and sales trends. Accessible by Staff, Store Owners, and Super Admins.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Analytics data retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="totalRevenue", type="number", format="float", example=1500.50),
+     *             @OA\Property(property="totalRefunds", type="number", format="float", example=100.00),
+     *             @OA\Property(property="totalShops", type="integer", example=5),
+     *             @OA\Property(property="totalVendors", type="integer", example=3),
+     *             @OA\Property(property="todaysRevenue", type="number", format="float", example=250.75),
+     *             @OA\Property(property="totalOrders", type="integer", example=120),
+     *             @OA\Property(property="newCustomers", type="integer", example=10),
+     *             @OA\Property(
+     *                 property="totalYearSaleByMonth",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="month", type="string", example="January"),
+     *                     @OA\Property(property="total", type="number", format="float", example=1200.00)
+     *                 )
+     *             ),
+     *             @OA\Property(
+     *                 property="todayTotalOrderByStatus",
+     *                 type="object",
+     *                 @OA\Property(property="pending", type="integer", example=2),
+     *                 @OA\Property(property="processing", type="integer", example=5),
+     *                 @OA\Property(property="complete", type="integer", example=10)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
+     */
     public function analytics(Request $request)
     {
         try {
@@ -276,10 +318,47 @@ class AnalyticsController extends CoreController
     }
 
     /**
-     * lowStockProducts
-     *
-     * @param  Request $request
-     * @return object
+     * @OA\Get(
+     *     path="/low-stock-products",
+     *     operationId="getLowStockProducts",
+     *     tags={"Analytics"},
+     *     summary="List products with low stock",
+     *     description="Retrieve products where quantity is less than 10. Supports filtering by shop, type and language.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of products to retrieve",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10, example=10)
+     *     ),
+     *     @OA\Parameter(
+     *         name="shop_id",
+     *         in="query",
+     *         description="Filter by shop ID",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="type_id",
+     *         in="query",
+     *         description="Filter by type ID",
+     *         required=false,
+     *         @OA\Schema(type="integer", example=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code",
+     *         required=false,
+     *         @OA\Schema(type="string", default="en")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="List of low stock products",
+     *         @OA\JsonContent(type="array", @OA\Items(ref="#/components/schemas/Product"))
+     *     )
+     * )
      */
     public function lowStockProducts(Request $request)
     {
@@ -322,10 +401,40 @@ class AnalyticsController extends CoreController
     }
 
     /**
-     * categoryWiseProduct
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/category-wise-product",
+     *     operationId="getCategoryWiseProductCount",
+     *     tags={"Analytics"},
+     *     summary="Get product count distribution by category",
+     *     description="Retrieve a list of categories with their respective product counts for the current user's scope.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of categories to retrieve",
+     *         @OA\Schema(type="integer", default=15)
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code",
+     *         @OA\Schema(type="string", default="en")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Category distribution data",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="category_id", type="integer", example=1),
+     *                 @OA\Property(property="category_name", type="string", example="Electronics"),
+     *                 @OA\Property(property="shop_name", type="string", example="Gadget Store"),
+     *                 @OA\Property(property="product_count", type="integer", example=42)
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function categoryWiseProduct(Request $request)
     {
@@ -407,10 +516,40 @@ class AnalyticsController extends CoreController
         return $mostProductCategory;
     }
     /**
-     * categoryWiseProductSale
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/category-wise-product-sale",
+     *     operationId="getCategoryWiseProductSales",
+     *     tags={"Analytics"},
+     *     summary="Get sales distribution by category",
+     *     description="Retrieve top categories based on total product sales volume.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of categories to retrieve",
+     *         @OA\Schema(type="integer", default=15)
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code",
+     *         @OA\Schema(type="string", default="en")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Category sales data",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="category_id", type="integer", example=1),
+     *                 @OA\Property(property="category_name", type="string", example="Electronics"),
+     *                 @OA\Property(property="shop_name", type="string", example="Gadget Store"),
+     *                 @OA\Property(property="total_sales", type="number", example=150)
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function categoryWiseProductSale(Request $request)
     {
@@ -506,10 +645,40 @@ class AnalyticsController extends CoreController
 
 
     /**
-     * topRatedProducts
-     *
-     * @param  Request $request
-     * @return void
+     * @OA\Get(
+     *     path="/top-rate-product",
+     *     operationId="getTopRatedProducts",
+     *     tags={"Analytics"},
+     *     summary="Get highest rated products",
+     *     description="Retrieve products sorted by their average rating. Accessible for shop-scoped analytics.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Number of products to retrieve",
+     *         @OA\Schema(type="integer", default=10)
+     *     ),
+     *     @OA\Parameter(
+     *         name="language",
+     *         in="query",
+     *         description="Language code",
+     *         @OA\Schema(type="string", default="en")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Top rated products data",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="integer", example=1),
+     *                 @OA\Property(property="name", type="string", example="Comfortable Shirt"),
+     *                 @OA\Property(property="actual_rating", type="number", format="float", example=4.85),
+     *                 @OA\Property(property="rating_count", type="integer", example=25)
+     *             )
+     *         )
+     *     )
+     * )
      */
     public function topRatedProducts(Request $request)
     {
