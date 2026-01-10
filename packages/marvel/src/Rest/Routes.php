@@ -91,14 +91,14 @@ Route::middleware(['throttle:sensitive'])->group(function () {
 });
 
 /**
- * OTP Routes - Strictly Rate Limited (3/min per IP)
- * Protects against SMS bombing (expensive!) and OTP brute force
+ * OTP Routes - DISABLED
+ * Uncomment if you need phone-based authentication
  */
-Route::middleware(['throttle:otp'])->group(function () {
-    Route::post('/send-otp-code', [UserController::class, 'sendOtpCode']);
-    Route::post('/verify-otp-code', [UserController::class, 'verifyOtpCode']);
-    Route::post('/otp-login', [UserController::class, 'otpLogin']);
-});
+// Route::middleware(['throttle:otp'])->group(function () {
+//     Route::post('/send-otp-code', [UserController::class, 'sendOtpCode']);
+//     Route::post('/verify-otp-code', [UserController::class, 'verifyOtpCode']);
+//     Route::post('/otp-login', [UserController::class, 'otpLogin']);
+// });
 
 Route::get('top-authors', [AuthorController::class, 'topAuthor']);
 Route::get('top-manufacturers', [ManufacturerController::class, 'topManufacturer']);

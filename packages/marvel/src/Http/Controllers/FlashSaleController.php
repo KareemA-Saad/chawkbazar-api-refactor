@@ -17,6 +17,26 @@ use Marvel\Http\Requests\UpdateFlashSaleRequest;
 use Prettus\Validator\Exceptions\ValidatorException;
 use Marvel\Database\Repositories\ProductRepository;
 
+/**
+ * @OA\Tag(name="Flash Sales", description="Public and admin flash sale management")
+ *
+ * @OA\Schema(
+ *     schema="FlashSale",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="title", type="string", example="Summer Sale"),
+ *     @OA\Property(property="slug", type="string", example="summer-sale"),
+ *     @OA\Property(property="description", type="string", example="Up to 50% off on summer collection"),
+ *     @OA\Property(property="image", type="object"),
+ *     @OA\Property(property="start_date", type="string", format="date-time"),
+ *     @OA\Property(property="end_date", type="string", format="date-time"),
+ *     @OA\Property(property="type", type="string", enum={"fixed", "percentage"}, example="percentage"),
+ *     @OA\Property(property="rate", type="number", example=50.00),
+ *     @OA\Property(property="language", type="string", example="en"),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class FlashSaleController extends CoreController
 {
     public $repository;
@@ -31,10 +51,25 @@ class FlashSaleController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|FlashSale[]
+     * @OA\Get(
+     *     path="/flash-sale",
+     *     operationId="getFlashSales",
+     *     tags={"Flash Sales"},
+     *     summary="List Flash Sales",
+     *     description="Retrieve a paginated list of flash sales.",
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=10)),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Parameter(name="request_from", in="query", required=false, @OA\Schema(type="string", enum={"vendor"})),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Flash sales retrieved successfully",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/FlashSale")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -79,10 +114,21 @@ class FlashSaleController extends CoreController
     }
 
     /**
-     * Display the specified flash sale.
-     *
-     * @param string $slug
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/flash-sale/{slug}",
+     *     operationId="getFlashSaleBySlug",
+     *     tags={"Flash Sales"},
+     *     summary="Get Single Flash Sale",
+     *     description="Retrieve details of a flash sale by its slug.",
+     *     @OA\Parameter(name="slug", in="path", required=true, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="language", in="query", required=false, @OA\Schema(type="string", default="en")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Flash sale details retrieved successfully",
+     *         @OA\JsonContent(ref="#/components/schemas/FlashSale")
+     *     ),
+     *     @OA\Response(response=404, description="Flash sale not found")
+     * )
      */
     public function show(Request $request, $slug)
     {

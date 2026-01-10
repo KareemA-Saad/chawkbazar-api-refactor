@@ -24,6 +24,25 @@ use Marvel\Http\Resources\RefundResource;
 use Marvel\Traits\WalletsTrait;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
+/**
+ * @OA\Tag(name="Refunds", description="Refund requests management")
+ *
+ * @OA\Schema(
+ *     schema="Refund",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="title", type="string", example="Damaged product"),
+ *     @OA\Property(property="description", type="string", example="The product arrived with a broken screen."),
+ *     @OA\Property(property="images", type="array", @OA\Items(type="object")),
+ *     @OA\Property(property="status", type="string", enum={"pending", "approved", "rejected", "processing"}, example="pending"),
+ *     @OA\Property(property="amount", type="number", format="float", example=50.00),
+ *     @OA\Property(property="order_id", type="integer", example=1),
+ *     @OA\Property(property="customer_id", type="integer", example=10),
+ *     @OA\Property(property="shop_id", type="integer", nullable=true),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class RefundController extends CoreController
 {
     use WalletsTrait;
@@ -37,10 +56,26 @@ class RefundController extends CoreController
 
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @return Collection|Type[]
+     * @OA\Get(
+     *     path="/refunds",
+     *     operationId="getRefunds",
+     *     tags={"Refunds"},
+     *     summary="List Refund Requests",
+     *     description="Retrieve a paginated list of refund requests. Customers see their own; Admin/Owners see relevant ones.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Parameter(name="shop_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Refund requests retrieved",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Refund")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
      */
     public function index(Request $request)
     {
@@ -89,11 +124,28 @@ class RefundController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param RefundRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/refunds",
+     *     operationId="createRefund",
+     *     tags={"Refunds"},
+     *     summary="Create Refund Request",
+     *     description="Submit a new refund request for an order. Requires CUSTOMER permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"title", "description", "order_id", "amount"},
+     *             @OA\Property(property="title", type="string", example="Wrong item"),
+     *             @OA\Property(property="description", type="string", example="I received a different item than ordered."),
+     *             @OA\Property(property="order_id", type="integer", example=1),
+     *             @OA\Property(property="amount", type="number", format="float", example=25.00),
+     *             @OA\Property(property="images", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Refund request submitted", @OA\JsonContent(ref="#/components/schemas/Refund")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(RefundRequest $request)
     {
@@ -108,10 +160,17 @@ class RefundController extends CoreController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param $id
-     * @return JsonResponse
+     * @OA\Get(
+     *     path="/refunds/{id}",
+     *     operationId="getRefund",
+     *     tags={"Refunds"},
+     *     summary="Get Refund details",
+     *     description="Retrieve details of a single refund request.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Refund details retrieved", @OA\JsonContent(ref="#/components/schemas/Refund")),
+     *     @OA\Response(response=404, description="Refund not found")
+     * )
      */
     public function show($id)
     {
@@ -124,11 +183,27 @@ class RefundController extends CoreController
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param Request  $request
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Put(
+     *     path="/refunds/{id}",
+     *     operationId="updateRefund",
+     *     tags={"Content Moderation"},
+     *     summary="Update Refund Status",
+     *     description="Update a refund request status (approve, reject, processing). When approved, credits customer wallet and deducts from shop balance. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Refund ID", @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"status"},
+     *             @OA\Property(property="status", type="string", enum={"approved", "rejected", "processing", "pending"}, example="approved")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Refund updated successfully"),
+     *     @OA\Response(response=400, description="Already refunded"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Refund not found")
+     * )
      */
     public function update(Request $request, $id)
     {
@@ -206,10 +281,19 @@ class RefundController extends CoreController
     }
 
     /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return JsonResponse
+     * @OA\Delete(
+     *     path="/refunds/{id}",
+     *     operationId="deleteRefund",
+     *     tags={"Content Moderation"},
+     *     summary="Delete Refund Request",
+     *     description="Delete a refund request. Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, description="Refund ID", @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Refund deleted successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN"),
+     *     @OA\Response(response=404, description="Refund not found")
+     * )
      */
     public function destroy(Request $request, $id)
     {

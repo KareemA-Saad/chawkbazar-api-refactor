@@ -64,11 +64,31 @@ class SettingsController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param SettingsRequest $request
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/settings",
+     *     operationId="updateSettings",
+     *     tags={"Platform Configuration"},
+     *     summary="Update Platform Settings",
+     *     description="Create or update platform-wide settings (currency, language, SEO, etc.). Requires SUPER_ADMIN permission.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"options"},
+     *             @OA\Property(property="language", type="string", example="en"),
+     *             @OA\Property(property="options", type="object", description="Platform settings object",
+     *                 @OA\Property(property="siteTitle", type="string", example="ChawkBazar"),
+     *                 @OA\Property(property="siteSubtitle", type="string"),
+     *                 @OA\Property(property="currency", type="string", example="USD"),
+     *                 @OA\Property(property="logo", type="object"),
+     *                 @OA\Property(property="seo", type="object")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Settings updated successfully"),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - requires SUPER_ADMIN")
+     * )
      */
     public function store(SettingsRequest $request)
     {

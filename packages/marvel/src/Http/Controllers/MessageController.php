@@ -19,6 +19,20 @@ use Marvel\Http\Requests\MessageCreateRequest;
 use Prettus\Validator\Exceptions\ValidatorException;
 
 
+/**
+ * @OA\Tag(name="Messages", description="Messages within a conversation")
+ *
+ * @OA\Schema(
+ *     schema="Message",
+ *     type="object",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="conversation_id", type="integer", example=1),
+ *     @OA\Property(property="sender_id", type="integer", example=10),
+ *     @OA\Property(property="message", type="string", example="Hello, I have a question about my order."),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class MessageController extends CoreController
 {
     public $repository;
@@ -31,11 +45,27 @@ class MessageController extends CoreController
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @param Request $request
-     * @param $conversation_id
-     * @return Collection|Message[]
+     * @OA\Get(
+     *     path="/messages/{conversation_id}",
+     *     operationId="getMessages",
+     *     tags={"Messages"},
+     *     summary="List Messages",
+     *     description="Get a paginated list of messages for a specific conversation.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="conversation_id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="limit", in="query", required=false, @OA\Schema(type="integer", default=15)),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Messages retrieved",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Message")),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden - not a participant")
+     * )
      */
     public function index(Request $request, $conversation_id)
     {
@@ -52,6 +82,25 @@ class MessageController extends CoreController
 
     }
 
+    /**
+     * @OA\Post(
+     *     path="/messages/seen",
+     *     operationId="seenMessage",
+     *     tags={"Messages"},
+     *     summary="Mark Messages as Seen",
+     *     description="Mark all messages in a conversation as read for the current user.",
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"conversation_id"},
+     *             @OA\Property(property="conversation_id", type="integer", example=1)
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Messages marked as read"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function seenMessage(Request $request)
     {
         return $this->seen($request->conversation_id);
@@ -107,12 +156,26 @@ class MessageController extends CoreController
     }
 
     /**
-     * Store a newly created resource in storage.
-     *
-     * @param MessageCreateRequest $request
-     * @param $conversation_id
-     * @return mixed
-     * @throws ValidatorException
+     * @OA\Post(
+     *     path="/messages/{conversation_id}",
+     *     operationId="sendMessage",
+     *     tags={"Messages"},
+     *     summary="Send Message",
+     *     description="Send a new message in a conversation.",
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="conversation_id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"message"},
+     *             @OA\Property(property="message", type="string", example="Hello!"),
+     *             @OA\Property(property="type", type="string", enum={"shop", "user"}, example="user")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Message sent", @OA\JsonContent(ref="#/components/schemas/Message")),
+     *     @OA\Response(response=401, description="Unauthenticated"),
+     *     @OA\Response(response=403, description="Forbidden")
+     * )
      */
     public function store(MessageCreateRequest $request, $conversation_id)
     {
