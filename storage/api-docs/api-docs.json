@@ -918,6 +918,306 @@
                 ]
             }
         },
+        "/attachments": {
+            "get": {
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Get list of attachments",
+                "description": "Returns paginated list of all uploaded attachments",
+                "operationId": "getAttachments",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer",
+                                                        "example": 1
+                                                    },
+                                                    "original": {
+                                                        "type": "string",
+                                                        "example": "https://example.com/storage/uploads/image.jpg"
+                                                    },
+                                                    "thumbnail": {
+                                                        "type": "string",
+                                                        "example": "https://example.com/storage/uploads/conversions/image-thumbnail.jpg"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "updated_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "current_page": {
+                                            "type": "integer"
+                                        },
+                                        "per_page": {
+                                            "type": "integer"
+                                        },
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Upload new attachment(s)",
+                "description": "Upload one or multiple files. Rate limited to 10 uploads per minute per user. Supports images, documents, and other file types. Images automatically generate thumbnails.",
+                "operationId": "storeAttachment",
+                "requestBody": {
+                    "description": "File(s) to upload",
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "attachment[]"
+                                ],
+                                "properties": {
+                                    "attachment[]": {
+                                        "description": "Array of files to upload (supports multiple files)",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "File(s) uploaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 123
+                                            },
+                                            "original": {
+                                                "type": "string",
+                                                "example": "https://example.com/storage/uploads/file.jpg"
+                                            },
+                                            "thumbnail": {
+                                                "description": "Only for images",
+                                                "type": "string",
+                                                "example": "https://example.com/storage/uploads/thumb_file.jpg"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "422": {
+                        "description": "Validation Error - Invalid file type or size"
+                    },
+                    "429": {
+                        "description": "Too Many Requests - Rate limit exceeded (10/min)"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/attachments/{id}": {
+            "get": {
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Get attachment by ID",
+                "description": "Returns a single attachment with its details",
+                "operationId": "getAttachmentById",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Attachment ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "original": {
+                                            "type": "string",
+                                            "example": "https://example.com/storage/uploads/image.jpg"
+                                        },
+                                        "thumbnail": {
+                                            "type": "string",
+                                            "example": "https://example.com/storage/uploads/conversions/image-thumbnail.jpg"
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Attachment not found"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Update attachment (Not implemented)",
+                "description": "This endpoint is currently not implemented and will return false",
+                "operationId": "updateAttachment",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Attachment ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns false (not implemented)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": false
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Delete attachment",
+                "description": "Permanently delete an attachment and its associated files from storage. Rate limited to 10 requests per minute.",
+                "operationId": "deleteAttachment",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Attachment ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attachment deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                },
+                                "example": true
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Attachment not found"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "429": {
+                        "description": "Too Many Requests - Rate limit exceeded"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/attributes": {
             "get": {
                 "tags": [
@@ -12883,6 +13183,10 @@
         {
             "name": "AI",
             "description": "AI powered features - content generation and assistance"
+        },
+        {
+            "name": "Attachments",
+            "description": "File upload and management endpoints"
         },
         {
             "name": "Attributes",
