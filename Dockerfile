@@ -44,7 +44,8 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --optimize-autoloader \
-    --prefer-dist
+    --prefer-dist \
+    --no-scripts
 
 # ==============================================================================
 # STAGE 2: Production Runtime
