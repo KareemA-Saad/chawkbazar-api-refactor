@@ -15,7 +15,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost:8000/api",
+            "url": "https://chawkbazar-api-production-3a97.up.railway.app/api",
             "description": "API Server"
         }
     ],
