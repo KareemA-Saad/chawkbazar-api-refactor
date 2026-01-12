@@ -82,13 +82,15 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         opcache \
         mbstring
 
-# Configure Apache
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+# Configure Apache - disable conflicting MPMs first
+RUN a2dismod mpm_event || true \
+    && a2dismod mpm_worker || true \
+    && a2enmod mpm_prefork \
+    && a2enmod rewrite headers \
+    && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && sed -i 's/Listen 80/Listen ${PORT}/' /etc/apache2/ports.conf \
-    && sed -i 's/:80/:${PORT}/' /etc/apache2/sites-available/000-default.conf \
-    && a2dismod mpm_event \
-    && a2enmod mpm_prefork rewrite headers
+    && sed -i 's/:80/:${PORT}/' /etc/apache2/sites-available/000-default.conf
 
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
