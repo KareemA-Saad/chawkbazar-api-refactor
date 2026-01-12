@@ -48,29 +48,31 @@ RUN composer install \
     --no-scripts
 
 # ==============================================================================
-# STAGE 2: Production Runtime
+# STAGE 2: Production Runtime (Using PHP CLI - no Apache)
 # ==============================================================================
-FROM php:8.2-apache AS production
-
-# Set environment variables
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-ENV PORT=10000
+FROM php:8.2-cli-alpine AS production
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libicu-dev \
-    libonig-dev \
+RUN apk add --no-cache \
+    libpng \
+    libjpeg-turbo \
+    freetype \
+    libzip \
+    icu-libs \
+    oniguruma \
     ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    curl
 
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+# Install build dependencies temporarily for PHP extensions
+RUN apk add --no-cache --virtual .build-deps \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libzip-dev \
+    icu-dev \
+    oniguruma-dev \
+    $PHPIZE_DEPS \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_mysql \
@@ -80,20 +82,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         intl \
         exif \
         opcache \
-        mbstring
-
-# Configure Apache - remove conflicting MPM modules entirely
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.conf \
-    && rm -f /etc/apache2/mods-enabled/mpm_event.load \
-    && rm -f /etc/apache2/mods-enabled/mpm_worker.conf \
-    && rm -f /etc/apache2/mods-enabled/mpm_worker.load \
-    && ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
-    && ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
-    && a2enmod rewrite headers \
-    && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
-    && sed -i 's/Listen 80/Listen ${PORT}/' /etc/apache2/ports.conf \
-    && sed -i 's/:80/:${PORT}/' /etc/apache2/sites-available/000-default.conf
+        mbstring \
+    && apk del .build-deps
 
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
@@ -109,13 +99,16 @@ RUN echo "opcache.enable=1" >> $PHP_INI_DIR/conf.d/opcache.ini \
     && echo "opcache.revalidate_freq=0" >> $PHP_INI_DIR/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> $PHP_INI_DIR/conf.d/opcache.ini
 
+# Create non-root user
+RUN addgroup -g 1000 -S www && adduser -u 1000 -S www -G www
+
 WORKDIR /var/www/html
 
 # Copy application code
-COPY --chown=www-data:www-data . .
+COPY --chown=www:www . .
 
 # Copy vendor from build stage
-COPY --from=composer-build --chown=www-data:www-data /app/vendor ./vendor
+COPY --from=composer-build --chown=www:www /app/vendor ./vendor
 
 # Create required directories and set permissions
 RUN mkdir -p storage/framework/cache/data \
@@ -123,7 +116,7 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
+    && chown -R www:www storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
 # Copy and configure entrypoint script
@@ -131,15 +124,15 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Switch to non-root user for security
-USER www-data
+USER www
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/api || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/api || exit 1
 
-# Expose Render's default port
-EXPOSE 10000
+# Expose port (Render will set PORT env var)
+EXPOSE 8080
 
-# Start Apache via entrypoint
+# Start via entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
