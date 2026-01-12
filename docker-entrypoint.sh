@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # =============================================================================
@@ -35,7 +35,7 @@ if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
 fi
 
 # =============================================================================
-# 4. Ensure proper permissions (as www-data user)
+# 4. Ensure proper permissions
 # =============================================================================
 echo "🔐 Verifying storage permissions..."
 
@@ -45,9 +45,14 @@ echo "🔐 Verifying storage permissions..."
 echo "✅ Laravel application ready!"
 echo "   - Environment: ${APP_ENV:-production}"
 echo "   - Debug: ${APP_DEBUG:-false}"
-echo "   - Port: ${PORT:-10000}"
+echo "   - Port: ${PORT:-8080}"
 
 # =============================================================================
-# 6. Execute the main command (Apache)
+# 6. Execute the main command
 # =============================================================================
-exec "$@"
+# If the first argument is "php" and contains "artisan serve", inject PORT
+if [ "$1" = "php" ] && [ "$2" = "artisan" ] && [ "$3" = "serve" ]; then
+    exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+else
+    exec "$@"
+fi
