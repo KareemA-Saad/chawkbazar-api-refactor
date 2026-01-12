@@ -41,8 +41,8 @@ if (!function_exists('globalSlugify')) {
             } else {
                 $query = $model::query();
             }
-            $cleanString = preg_replace("/[~`{}.'\"\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\_\\=\\+\\/\\?\\>\\<\\,\\[\\]\\:\\;\\|\\\\\\]/", "", $slugText);
-            $cleanString = preg_replace("/[\\/_|+ -]+/", '-', $slugText);
+            $cleanString = preg_replace("/[~`{}.'\"\!\@\#\$\%\^\&\*\(\)\_\=\+\/\?\>\<\,\[\]\:\;\|\\\\]+/", "", $slugText);
+            $cleanString = preg_replace("/[\/_|+ -]+/", '-', $cleanString);
             $slug = strtolower($cleanString);
             if ($key) {
                 $slugCount = $query->where($key, $slug)->count();

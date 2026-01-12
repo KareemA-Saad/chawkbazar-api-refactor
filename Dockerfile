@@ -87,7 +87,8 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
     && sed -i 's/Listen 80/Listen ${PORT}/' /etc/apache2/ports.conf \
     && sed -i 's/:80/:${PORT}/' /etc/apache2/sites-available/000-default.conf \
-    && a2enmod rewrite headers
+    && a2dismod mpm_event \
+    && a2enmod mpm_prefork rewrite headers
 
 # Configure PHP for production
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
