@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Marvel\Enums\RefundPolicyStatus;
 use Marvel\Enums\RefundPolicyTarget;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -26,7 +25,7 @@ return new class extends Migration
             $table->softDeletes();
         });
         Schema::table('refunds', function (Blueprint $table) {
-            $table->foreignId('refund_policy_id')->after('customer_id')->nullable()->constrained('refund_policies')->onDelete('set null');
+            $table->foreignId('refund_policy_id')->nullable()->constrained('refund_policies')->onDelete('set null');
         });
     }
 

@@ -58,7 +58,7 @@ class CreateProductTypeTable extends Migration
         });
 
         Schema::table('variation_options', function (Blueprint $table) {
-            $table->json('image')->after('title')->nullable();
+            $table->json('image')->nullable();
             $table->boolean('is_digital')->default(0);
         });
     }

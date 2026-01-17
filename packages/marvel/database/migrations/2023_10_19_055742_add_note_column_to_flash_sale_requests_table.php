@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,10 +12,10 @@ return new class extends Migration
     {
         Schema::table('flash_sale_requests', function (Blueprint $table) {
             $table->dropColumn('requested_product_ids');
-            $table->string('note')->after('request_status')->nullable();
-            $table->unsignedBigInteger('flash_sale_id')->after('title');
+            $table->string('note')->nullable();
+            $table->unsignedBigInteger('flash_sale_id');
             $table->foreign('flash_sale_id')->references('id')->on('flash_sales')->onDelete('cascade');
-            $table->string('language')->after('note')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
 
         Schema::create('flash_sale_requests_products', function (Blueprint $table) {

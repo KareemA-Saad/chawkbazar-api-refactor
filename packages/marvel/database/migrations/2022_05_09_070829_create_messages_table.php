@@ -49,10 +49,10 @@ class CreateMessagesTable extends Migration
         });
 
         Schema::table('user_profiles', function ($table) {
-            $table->json('notifications')->after('contact')->nullable();
+            $table->json('notifications')->nullable();
         });
         Schema::table('shops', function ($table) {
-            $table->json('notifications')->after('settings')->nullable();
+            $table->json('notifications')->nullable();
         });
     }
 
