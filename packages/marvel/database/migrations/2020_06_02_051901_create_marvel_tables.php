@@ -127,8 +127,8 @@ class CreateMarvelTables extends Migration
             $table->unsignedBigInteger('logistics_provider')->nullable();
             $table->double('delivery_fee')->nullable();
             $table->string('delivery_time')->nullable();
-            $table->enum('order_status', OrderStatus::getValues())->default(OrderStatus::DEFAULT_ORDER_STATUS);
-            $table->enum('payment_status', PaymentStatus::getValues())->default(PaymentStatus::DEFAULT_PAYMENT_STATUS);
+            $table->enum('order_status', OrderStatus::getValues())->default(OrderStatus::PENDING);
+            $table->enum('payment_status', PaymentStatus::getValues())->default(PaymentStatus::PENDING);
             $table->softDeletes();
             $table->timestamps();
             $table->foreign('customer_id')->references('id')->on('users');
