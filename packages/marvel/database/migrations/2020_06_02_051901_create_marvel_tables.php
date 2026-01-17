@@ -32,7 +32,7 @@ class CreateMarvelTables extends Migration
             $table->string('code');
             $table->text('description')->nullable();
             $table->json('image')->nullable();
-            $table->enum('type', CouponType::getValues())->default(CouponType::DEFAULT_COUPON);
+            $table->enum('type', CouponType::getValues())->default(CouponType::FIXED_COUPON);
             $table->float('amount')->default(0);
             $table->float('minimum_cart_amount')->default(0);
             $table->string('active_from');
@@ -157,7 +157,7 @@ class CreateMarvelTables extends Migration
             $table->text('details')->nullable();
             $table->unsignedBigInteger('parent')->nullable();
             $table->foreign('parent')->references('id')->on('categories')->onDelete('cascade');
-//            $table->unsignedBigInteger('type_id');
+            //            $table->unsignedBigInteger('type_id');
 //            $table->foreign('type_id')->references('id')->on('types')->onDelete('cascade');
             $table->timestamps();
             $table->softDeletes();
