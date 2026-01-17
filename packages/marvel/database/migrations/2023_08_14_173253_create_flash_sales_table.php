@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Marvel\Enums\FlashSaleType;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -20,7 +19,7 @@ return new class extends Migration
             $table->dateTime('start_date')->default(now());
             $table->dateTime('end_date');
             $table->boolean('sale_status')->default(false);
-            $table->enum('type', FlashSaleType::getValues())->default(FlashSaleType::DEFAULT);
+            $table->enum('type', FlashSaleType::getValues())->default(FlashSaleType::PERCENTAGE);
             $table->integer('rate')->nullable();
             $table->json('sale_builder')->nullable();
             $table->json('image')->nullable();
