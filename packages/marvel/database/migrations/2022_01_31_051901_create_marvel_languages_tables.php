@@ -36,49 +36,49 @@ class CreateMarvelLanguagesTables extends Migration
 
 
         Schema::table('products', function (Blueprint $table) {
-            $table->string('language')->after('sale_price')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('categories', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('tags', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('authors', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('manufacturers', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('resources', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('types', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('attributes', function (Blueprint $table) {
-            $table->string('language')->after('slug')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('attribute_values', function (Blueprint $table) {
-            $table->string('language')->after('value')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('availabilities', function (Blueprint $table) {
-            $table->string('language')->after('to')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('coupons', function (Blueprint $table) {
-            $table->string('language')->after('code')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('orders', function (Blueprint $table) {
-            $table->string('language')->after('total')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         // Schema::table('order_status', function (Blueprint $table) {
-        //     $table->string('language')->after('serial')->default(DEFAULT_LANGUAGE);
+        //     $table->string('language')->default(DEFAULT_LANGUAGE);
         // });
         Schema::table('variation_options', function (Blueprint $table) {
-            $table->string('language')->after('sale_price')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->default(DEFAULT_LANGUAGE);
         });
         Schema::table('settings', function (Blueprint $table) {
-            $table->string('language')->unique()->after('options')->default(DEFAULT_LANGUAGE);
+            $table->string('language')->unique()->default(DEFAULT_LANGUAGE);
         });
     }
 

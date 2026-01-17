@@ -14,18 +14,18 @@ class AddColumnsToTable extends Migration
     public function up()
     {
         Schema::table('reviews', function (Blueprint $table) {
-            $table->unsignedBigInteger('order_id')->after('id')->nullable();
+            $table->unsignedBigInteger('order_id')->nullable();
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
-            $table->unsignedBigInteger('variation_option_id')->after('product_id')->nullable();
+            $table->unsignedBigInteger('variation_option_id')->nullable();
             $table->foreign('variation_option_id')->references('id')->on('variation_options')->onDelete('cascade');
         });
 
         Schema::table('wishlists', function (Blueprint $table) {
-            $table->unsignedBigInteger('variation_option_id')->after('product_id')->nullable();
+            $table->unsignedBigInteger('variation_option_id')->nullable();
             $table->foreign('variation_option_id')->references('id')->on('variation_options')->onDelete('cascade');
         });
         Schema::table('orders', function (Blueprint $table) {
-            $table->decimal('cancelled_amount')->after('total')->default(0);
+            $table->decimal('cancelled_amount')->default(0);
         });
     }
 

@@ -6,8 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Marvel\Enums\DefaultStatusType;
 use Marvel\Enums\ProductVisibilityStatus;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -28,7 +27,7 @@ return new class extends Migration
         });
 
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('visibility', ProductVisibilityStatus::getValues())->after('status')->default(ProductVisibilityStatus::VISIBILITY_PUBLIC);
+            $table->enum('visibility', ProductVisibilityStatus::getValues())->default(ProductVisibilityStatus::VISIBILITY_PUBLIC);
         });
     }
 

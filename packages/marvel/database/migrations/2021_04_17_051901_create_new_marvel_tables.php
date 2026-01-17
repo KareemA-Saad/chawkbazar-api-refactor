@@ -47,13 +47,13 @@ class CreateNewMarvelTables extends Migration
             $table->foreign('tag_id')->references('id')->on('tags')->onDelete('cascade');
         });
         Schema::table('products', function (Blueprint $table) {
-            $table->float('min_price')->after('sale_price')->nullable();
-            $table->float('max_price')->after('min_price')->nullable();
-            $table->json('video')->after('image')->nullable();
+            $table->float('min_price')->nullable();
+            $table->float('max_price')->nullable();
+            $table->json('video')->nullable();
         });
 
         Schema::table('order_product', function (Blueprint $table) {
-            $table->unsignedBigInteger('variation_option_id')->after('product_id')->nullable();
+            $table->unsignedBigInteger('variation_option_id')->nullable();
             $table->foreign('variation_option_id')->references('id')->on('variation_options');
         });
 
@@ -118,26 +118,26 @@ class CreateNewMarvelTables extends Migration
         });
 
         Schema::table('attributes', function (Blueprint $table) {
-            $table->unsignedBigInteger('shop_id')->nullable()->after('name');
+            $table->unsignedBigInteger('shop_id')->nullable();
             $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade');
         });
 
         Schema::table('attribute_values', function (Blueprint $table) {
-            $table->string('meta')->after('value')->nullable();
+            $table->string('meta')->nullable();
         });
 
         Schema::table('types', function (Blueprint $table) {
-            $table->json('settings')->after('name')->nullable();
+            $table->json('settings')->nullable();
         });
 
         Schema::table('products', function (Blueprint $table) {
-            $table->unsignedBigInteger('shop_id')->after('price')->nullable();
+            $table->unsignedBigInteger('shop_id')->nullable();
             $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade');
         });
         Schema::table('orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('shop_id')->after('coupon_id')->nullable();
+            $table->unsignedBigInteger('shop_id')->nullable();
             $table->foreign('shop_id')->references('id')->on('shops')->onDelete('cascade');
-            $table->unsignedBigInteger('parent_id')->after('coupon_id')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->foreign('parent_id')->references('id')->on('orders')->onDelete('cascade');
         });
 

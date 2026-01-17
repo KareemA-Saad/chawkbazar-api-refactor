@@ -12,9 +12,9 @@ class AddColumnToOrderTable extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->decimal('cancelled_tax')->after('cancelled_amount')->default(0);
-            $table->decimal('cancelled_delivery_fee')->after('cancelled_tax')->default(0);
-            $table->longText('note')->after('total')->nullable();
+            $table->decimal('cancelled_tax')->default(0);
+            $table->decimal('cancelled_delivery_fee')->default(0);
+            $table->longText('note')->nullable();
         });
     }
 
@@ -29,4 +29,5 @@ class AddColumnToOrderTable extends Migration
             $table->dropColumn('cancelled_delivery_fee');
         });
     }
-};
+}
+;
