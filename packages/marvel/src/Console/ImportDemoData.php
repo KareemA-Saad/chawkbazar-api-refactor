@@ -37,9 +37,10 @@ class ImportDemoData extends Command
         $attachments_sql = file_get_contents($attachments_path);
         DB::statement($attachments_sql);
 
-        $permissions_path = public_path('sql/permissions.sql');
-        $permissions_sql = file_get_contents($permissions_path);
-        DB::statement($permissions_sql);
+        // Permissions are seeded by Spatie package migrations
+        // $permissions_path = public_path('sql/permissions.sql');
+        // $permissions_sql = file_get_contents($permissions_path);
+        // DB::statement($permissions_sql);
 
         $roles_path = public_path('sql/roles.sql');
         $roles_sql = file_get_contents($roles_path);
