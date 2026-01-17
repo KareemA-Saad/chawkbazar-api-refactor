@@ -53,8 +53,22 @@ if [ "${RUN_MIGRATIONS}" = "true" ]; then
     
     # Run migrations with fresh (drops all tables first)
     echo "🚀 Executing: php artisan migrate:fresh --force"
-    if php artisan migrate:fresh --force --seed; then
+    if php artisan migrate:fresh --force; then
         echo "✅ Migrations completed successfully!"
+        
+        # Run seeding if enabled
+        if [ "${RUN_SEED}" = "true" ]; then
+            echo ""
+            echo "🌱 Running Marvel seed..."
+            if php artisan marvel:seed; then
+                echo "✅ Seeding completed successfully!"
+            else
+                echo "❌ Seeding failed! Error code: $?"
+                echo "   You may need to run 'php artisan marvel:seed' manually"
+            fi
+        else
+            echo "   Skipping seed (RUN_SEED is not 'true')"
+        fi
     else
         echo "❌ Migration failed! Error code: $?"
         echo "   Continuing anyway..."
