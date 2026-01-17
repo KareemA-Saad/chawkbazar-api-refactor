@@ -51,9 +51,9 @@ if [ "${RUN_MIGRATIONS}" = "true" ]; then
     php artisan migrate:status 2>&1 || echo "   (migrate:status failed, continuing anyway)"
     echo ""
     
-    # Run migrations with verbose output
-    echo "🚀 Executing: php artisan migrate --force"
-    if php artisan migrate --force; then
+    # Run migrations with fresh (drops all tables first)
+    echo "🚀 Executing: php artisan migrate:fresh --force"
+    if php artisan migrate:fresh --force --seed; then
         echo "✅ Migrations completed successfully!"
     else
         echo "❌ Migration failed! Error code: $?"
